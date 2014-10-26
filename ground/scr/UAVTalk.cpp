@@ -86,7 +86,7 @@ int UAVTalk::read() {
 	uint32_t temp = 0;
 	float f;
 	uint8_t c = readByte();
-	cerr << (int) c << endl;
+	//cerr << (int) c << endl;
 	/*temp |= c << 24;
 	c = readByte();
 	temp |= c << 16;
@@ -99,7 +99,7 @@ int UAVTalk::read() {
 	cerr << (int) c << endl;
 	serial->clear(QSerialPort::Input);
 	mainwindow->updateAttitudeState(f, 0, 0);*/
-	/*serial->waitForReadyRead(50);
+	serial->waitForReadyRead(50);
 	while (serial->bytesAvailable() > 0) {
 		// read in one byte
 		uint8_t c = (uint8_t) serial->read(1).at(0);
@@ -239,7 +239,7 @@ int UAVTalk::read() {
 		}
 
 		//delayMicroseconds(190);  // wait at least 1 byte
-	}*/
+	}
 
 	// check connect timeout
 	/*if (last_flighttelemetry_connect + FLIGHTTELEMETRYSTATS_CONNECT_TIMEOUT < millis()) {

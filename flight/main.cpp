@@ -9,6 +9,7 @@
 #include <string.h>
 #include "inc/UART.h"
 #include "inc/UAVTalk.h"
+#include "inc/MissionControl.h"
 
 // SERVO PORTC
 #define SERVO_PIN 3
@@ -58,7 +59,6 @@ typedef enum {
 } AutopilotState;
 volatile AutopilotState autopilot_state = AUTOPILOT_MANUAL;
 
-
 int main()
 {
 	uint8_t i;
@@ -100,8 +100,8 @@ int main()
 	sei();	// Global interrupts on
 
 	// UAVTalk object to read the UAVObjects
-	UAVTalk uavtalk;	// This also calls initUART()
 	UART::initUART(38400, true);
+	MissionControl missionControl;
 
 	// Initialize variables
 	// Initialize the desired PWM for testing
@@ -123,10 +123,11 @@ int main()
 		// For testing, forward uav_roll to UART
 		// TODO: Check if data is being received
 		// else the read will hang (check newData)
-		/*if (telemetry_update) {
+		/*if (autopilot_state != AUTOPILOT_EMERGENCY && telemetry_update) {
+			missionControl.runMission();
 			if(uavtalk.read()) {
 				uint32_t temp; 
-				memcpy(&temp, &uavtalk.uav_roll, sizeof(float));
+				memcpy(&temp, &uav_roll, sizeof(float));
 				UART::writeByte(temp >> 24);
 				UART::writeByte(temp >> 16);
 				UART::writeByte(temp >> 8);
@@ -136,20 +137,6 @@ int main()
 		}*/
 
 		// TEST: Check the flight mode switch 
-		// Switch the LED
-		/*if (autopilot_state != AUTOPILOT_EMERGENCY && pwm_desired[4] > 3500) {
-			PORTB |= (1 << 5);	
-			autopilot_state = AUTOPILOT_TEST;
-			pwm_desired[0] = 2000;
-			pwm_desired[1] = 2500;
-			pwm_desired[2] = 3000;
-			pwm_desired[3] = 3500;
-			pwm_desired[4] = 4000;
-		} else if (autopilot_state != AUTOPILOT_EMERGENCY && 
-				pwm_desired[4] < 2250 && pwm_desired[4] > 1500) {
-			PORTB &= ~(1 << 5);
-			autopilot_state = AUTOPILOT_MANUAL;
-		}*/
 		if (autopilot_state == AUTOPILOT_MANUAL) {
 			if (pwm_switch_counter > 3500) {
 				PORTB |= (1 << 5);	
@@ -161,7 +148,7 @@ int main()
 				pwm_desired[4] = 4000;
 			}
 		} else if (autopilot_state == AUTOPILOT_TEST) {
-			if (pwm_switch_counter > 1500 && pwm_desired[4] < 2250) {
+			if (pwm_switch_counter > 1500 && pwm_switch_counter < 2250) {
 				PORTB &= ~(1 << 5);
 				autopilot_state = AUTOPILOT_MANUAL;
 			}
