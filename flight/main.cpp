@@ -45,6 +45,8 @@ volatile bool telemetry_update = 0;
 // RC watchdog counter
 volatile uint8_t watchdog_counter = 0;
 
+volatile uint16_t pwm_switch_counter = 0;
+
 // Autopilot State
 typedef enum {
 	AUTOPILOT_MANUAL,
@@ -135,7 +137,7 @@ int main()
 
 		// TEST: Check the flight mode switch 
 		// Switch the LED
-		if (autopilot_state != AUTOPILOT_EMERGENCY && pwm_desired[4] > 3500) {
+		/*if (autopilot_state != AUTOPILOT_EMERGENCY && pwm_desired[4] > 3500) {
 			PORTB |= (1 << 5);	
 			autopilot_state = AUTOPILOT_TEST;
 			pwm_desired[0] = 2000;
@@ -143,9 +145,32 @@ int main()
 			pwm_desired[2] = 3000;
 			pwm_desired[3] = 3500;
 			pwm_desired[4] = 4000;
-		} else if (pwm_desired[4] < 2250) {
+		} else if (autopilot_state != AUTOPILOT_EMERGENCY && 
+				pwm_desired[4] < 2250 && pwm_desired[4] > 1500) {
 			PORTB &= ~(1 << 5);
 			autopilot_state = AUTOPILOT_MANUAL;
+		}*/
+		if (autopilot_state == AUTOPILOT_MANUAL) {
+			if (pwm_switch_counter > 3500) {
+				PORTB |= (1 << 5);	
+				autopilot_state = AUTOPILOT_TEST;
+				pwm_desired[0] = 2000;
+				pwm_desired[1] = 2500;
+				pwm_desired[2] = 3000;
+				pwm_desired[3] = 3500;
+				pwm_desired[4] = 4000;
+			}
+		} else if (autopilot_state == AUTOPILOT_TEST) {
+			if (pwm_switch_counter > 1500 && pwm_desired[4] < 2250) {
+				PORTB &= ~(1 << 5);
+				autopilot_state = AUTOPILOT_MANUAL;
+			}
+		} else if (autopilot_state == AUTOPILOT_EMERGENCY) {
+			pwm_desired[0] = 2920;
+			//if (pwm_desired[1] > 1000)
+			//pwm_desired[1] = pwm_desired[1] - 1;	// Slowly go down
+			pwm_desired[2] = 2950;
+			pwm_desired[3] = 2980;
 		}
 
 		// TEST: Both sticks to the right
@@ -164,7 +189,7 @@ ISR(TIMER1_COMPA_vect)
 {
 	// Increment the 20ms PWM counter
 	pwm_outputs = 0x01;
-	if (pwm_desired[0] > 0 && autopilot_state != AUTOPILOT_EMERGENCY)
+	if (pwm_desired[0] > 0)
 		PORTC |= (1 << pwm_output_pins[0]);
 	uint16_t sum = 0;
 	for (uint8_t i = 0; i < PWM_CHANNELS; ++i) {
@@ -176,34 +201,32 @@ ISR(TIMER1_COMPA_vect)
 	// Check state
 	// If lost connection
 	if (autopilot_state == AUTOPILOT_EMERGENCY) {
-		for (uint8_t i = 0; i < PWM_CHANNELS; ++i) {
-			// TODO: For now just zero everything
-			pwm_desired[i] = 0;
+		if (pwm_switch_counter > 3500) {
+			autopilot_state = AUTOPILOT_TEST;
+			pwm_desired[0] = 2000;
+			pwm_desired[1] = 2500;
+			pwm_desired[2] = 3000;
+			pwm_desired[3] = 3500;
+			pwm_desired[4] = 4000;
+		} else if (pwm_switch_counter > 1500) {
+			autopilot_state = AUTOPILOT_MANUAL;
+			//pwm_desired[1] = 2500;
 		}
-	} else if (autopilot_state == AUTOPILOT_MANUAL) {
-		/*pwm_desired[0] = 2000;
-		pwm_desired[1] = 2500;
-		pwm_desired[2] = 3000;
-		pwm_desired[3] = 3500;
-		pwm_desired[4] = 4000;*/
+		if (pwm_desired[1] > 100)
+			--pwm_desired[1];
 	}
 
 	// If no inputs from receiver, increment watchdog
 	// If the watchdog_counter is past 5, assume connection lost
-	if(++watchdog_counter > 5) {
+	if(autopilot_state != AUTOPILOT_EMERGENCY && ++watchdog_counter > 5) {
 		autopilot_state = AUTOPILOT_EMERGENCY;
-		pwm_inputs = 0;
-		// TODO: Look into looping
-		pwm_input_counters[0] = 0;
-		pwm_input_counters[1] = 0;
-		pwm_input_counters[2] = 0;
-		pwm_input_counters[3] = 0;
-		pwm_input_counters[4] = 0;
-		PORTC &= ~(1 << 0);
-		PORTC &= ~(1 << 1);
-		PORTC &= ~(1 << 2);
-		PORTC &= ~(1 << 3);
-		PORTC &= ~(1 << 4);
+		// Set the initial standby values (hover)
+		pwm_desired[0] = 2920;
+		pwm_desired[1] = 2900;
+		pwm_desired[2] = 2950;
+		pwm_desired[3] = 2980;
+		pwm_desired[4] = 2000;		// TODO: have global counter for just the switch
+		pwm_switch_counter = 0;
 	}
 }
 
@@ -260,7 +283,7 @@ ISR(PCINT0_vect)
 	//autopilot_state = AUTOPILOT_MANUAL;
 
 	uint8_t i = 0;
-	//if (autopilot_state != AUTOPILOT_MANUAL) i = 4;
+	if (autopilot_state != AUTOPILOT_MANUAL) i = 4;
 	for (; i < PWM_CHANNELS; ++i) {
 		if (changedbits & (1 << i))
 		{
@@ -279,7 +302,9 @@ ISR(PCINT0_vect)
 					// Update the desired signals
 					// Read times are usually about 10-20us less than actual
 					pwm_input_counters[i] += 3;	// Fix the slight error
-					pwm_desired[i] = pwm_input_counters[i]*20;	// Multiple by 20 scale
+					if (autopilot_state == AUTOPILOT_MANUAL)
+						pwm_desired[i] = pwm_input_counters[i]*20;	// Multiple by 20 scale
+					if (i == 4) pwm_switch_counter = pwm_input_counters[4]*20;
 					pwm_input_counters[i] = 0;
 				}
 			}
