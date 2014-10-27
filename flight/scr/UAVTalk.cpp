@@ -74,6 +74,7 @@ int UAVTalk::read() {
 	//uint8_t show_prio_info = 0;
 
 	uint8_t c;
+	// TODO: Figure out a better way to do this?
 	while(1) {
 	// Grab the data
 		while (!UART::UART_newData);

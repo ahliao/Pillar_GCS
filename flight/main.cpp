@@ -51,10 +51,7 @@ volatile uint16_t pwm_switch_counter = 0;
 // Autopilot State
 typedef enum {
 	AUTOPILOT_MANUAL,
-	AUTOPILOT_TAKEOFF,
-	AUTOPILOT_ALTITUDEHOLD,
-	AUTOPILOT_TEST,
-	AUTOPILOT_LAND,
+	AUTOPILOT_TEST,	// Temp test state, TODO: Switch to autopilot controller (Mission Planner
 	AUTOPILOT_EMERGENCY
 } AutopilotState;
 volatile AutopilotState autopilot_state = AUTOPILOT_MANUAL;
@@ -153,9 +150,8 @@ int main()
 				autopilot_state = AUTOPILOT_MANUAL;
 			}
 		} else if (autopilot_state == AUTOPILOT_EMERGENCY) {
+			// TODO: Run the altitude controller for landing
 			pwm_desired[0] = 2920;
-			//if (pwm_desired[1] > 1000)
-			//pwm_desired[1] = pwm_desired[1] - 1;	// Slowly go down
 			pwm_desired[2] = 2950;
 			pwm_desired[3] = 2980;
 		}
@@ -249,12 +245,6 @@ ISR(TIMER0_COMPA_vect)
 	}
 	if (pwm_inputs & (1 << 4))
 		++pwm_input_counters[4];
-
-	// NOTE: Can't use volatile loop variables
-	/*for (uint8_t i = 0; i < PWM_CHANNELS; ++i) {
-		if (pwm_inputs & (1 << i)) 
-			++pwm_input_counters[i];
-	}*/
 }
 
 // Pin change interrupt for PCINT7..0

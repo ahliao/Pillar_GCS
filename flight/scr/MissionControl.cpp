@@ -18,6 +18,26 @@ uint8_t MissionControl::runMission()
 	// Get the new UAVTalk data
 	uavtalk.read();
 
+	switch(mission.actions[mission.actionIndex]) {
+		case ACTION_TAKEOFF:
+			// Run the safety checks
+			// If problems occurred, return a 1
+			if (runSafetyChecks()) return 1;
+			
+			// Set the goal altitude and run the altitude controller
+
+			break;
+		case ACTION_HOVER:
+
+			break;
+		case ACTION_WP:
+
+			break;
+		case ACTION_LAND:
+
+			break;
+	}
+
 	return 0;
 }
 
@@ -29,9 +49,8 @@ uint8_t MissionControl::runSafetyChecks()
 	if (uavtalk.uav_bat < 15) return 1;
 	// Check if number of satellites is at least 7
 	if (uavtalk.uav_satellites_visible < 7) return 1;
-	// Check if communication to manual controller is active
-	// TODO: Check this in the main function?
-	//if (autopilot_state != AUTOPILOT_EMERGENCY)
+
+	// Communication check is done in the main.cppe
 
 	return 0;
 }
