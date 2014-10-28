@@ -138,10 +138,10 @@ int main()
 			if (pwm_switch_counter > 3500) {
 				PORTB |= (1 << 5);	
 				autopilot_state = AUTOPILOT_TEST;
-				pwm_desired[0] = 2000;
-				pwm_desired[1] = 2500;
-				pwm_desired[2] = 3000;
-				pwm_desired[3] = 3500;
+				pwm_desired[0] = 3000;
+				pwm_desired[1] = 2000;
+				pwm_desired[2] = 4000;
+				pwm_desired[3] = 3000;
 				pwm_desired[4] = 4000;
 			}
 		} else if (autopilot_state == AUTOPILOT_TEST) {
@@ -280,7 +280,8 @@ ISR(PCINT0_vect)
 					// Read times are usually about 10-20us less than actual
 					pwm_input_counters[i] += 3;	// Fix the slight error
 					if (autopilot_state == AUTOPILOT_MANUAL)
-						pwm_desired[i] = pwm_input_counters[i]*20;	// Multiple by 20 scale
+						// Multiply by 20 scale and take a two sample average
+						pwm_desired[i] = (pwm_desired[i] + pwm_input_counters[i]*20) / 2;	
 					if (i == 4) pwm_switch_counter = pwm_input_counters[4]*20;
 					pwm_input_counters[i] = 0;
 				}
