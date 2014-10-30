@@ -4,7 +4,7 @@
 // Alectryon Technologies
 // modified off of code from http://www.embedds.com/programming-avr-i2c-interface/
 
-#include "inc/I2C.hpp"
+#include "inc/I2C.h"
 
 void I2C::init() {
 	// set SCL to 100kHz

@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include "inc/UAVTalk.h"
+#include "inc/MPL3115A2.h"
 
 typedef enum 
 {
@@ -16,6 +17,14 @@ typedef enum
 	ACTION_LAND,
 	ACTION_HOVER,
 	ACTION_WP
+} MissionActionType;
+
+typedef struct _MissionAction
+{
+	MissionActionType type;
+	uint16_t altitude;
+	int16_t waypointX;
+	int16_t waypointY;
 } MissionAction;
 
 // Struct holding the mission's actions
@@ -42,6 +51,8 @@ class MissionControl
 
 		Mission mission;
 		UAVTalk uavtalk;
+		MPL3115A2 altimeter;
+		TelemetryData telemetry;
 
 };
 

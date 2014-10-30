@@ -10,6 +10,7 @@
 #define UAVTALK_H
 
 #include <stdint.h>
+#include "inc/TelemetryData.h"
 
 #define UAVTALK_SYNC_VAL				0x3C
 #define UAVTALK_TYPE_MASK				0xF8
@@ -201,14 +202,15 @@ class UAVTalk
 		~UAVTalk();
 
 		// Read from the serial stream
-		int read(void);
+		int read(TelemetryData& data);
 		//int read(uavtalk_message_t& msg);
 
 		// Get the state
 		int state(void);
 
+		//TelemetryData data;
 		// These are made public for debugging
-		int8_t uav_rssi;
+		/*int8_t uav_rssi;
 		uint8_t uav_linkquality;
 		uint8_t uav_linkstate;
 
@@ -242,19 +244,19 @@ class UAVTalk
 		// Battery and power data
 		uint16_t uav_bat;
 		uint16_t uav_current;
-		uint16_t uav_amp;
+		uint16_t uav_amp;*/
 
 	private:
 		// return an int8 from the ms
-		int8_t get_int8(uavtalk_message_t *msg, int pos);
+		inline int8_t get_int8(uavtalk_message_t *msg, int pos);
 
 		// return an int16 from the ms
-		int16_t get_int16(uavtalk_message_t *msg, int pos);
+		inline int16_t get_int16(uavtalk_message_t *msg, int pos);
 
-		int32_t get_int32(uavtalk_message_t *msg, int pos);
+		inline int32_t get_int32(uavtalk_message_t *msg, int pos);
 
 		// return an float from the ms
-		float get_float(uavtalk_message_t *msg, int pos);
+		inline float get_float(uavtalk_message_t *msg, int pos);
 
 		// send the uavtalk message msg
 		void send_msg(uavtalk_message_t *msg);

@@ -43,40 +43,22 @@ UAVTalk::UAVTalk() {
 	gcstelemetrystats_obj_len = 0;
 	gcstelemetrystats_obj_status = 0;
 	flighttelemetrystats_obj_status = 0;
-
-	uav_rssi = 0;
-	uav_linkquality = 0;
-	uav_failsafe = 0;
-	uav_arm = 0;
-	uav_flightmode = 0;
-	uav_roll = 0;
-	uav_pitch = 0;
-	uav_heading = 0;
-	uav_lat = 0;
-	uav_lon = 0;
-	uav_satellites_visible = 0;
-	uav_fix_type = 0;
-	uav_gpsheading = 0;
-	uav_alt = 0;
-	uav_groundspeed = 0;
-	uav_bat = 0;
-	uav_current = 0;
-	uav_amp = 0;
 }
 
 UAVTalk::~UAVTalk() {
 }
 
 // Read from the serial stream
-int UAVTalk::read() {
-	uavtalk_message_t msg;
+int UAVTalk::read(TelemetryData& data) {
+	static uavtalk_message_t msg;
 	//static uint8_t crlf_count = 0;
 	//uint8_t show_prio_info = 0;
 
 	uint8_t c;
 	// TODO: Figure out a better way to do this?
-	while(1) {
+	//while(1) {
 	// Grab the data
+	// TODO: Make this not holding?
 		while (!UART::UART_newData);
 		c = UART::UART_data;
 		UART::UART_newData = false;
@@ -103,19 +85,19 @@ int UAVTalk::read() {
 				case ATTITUDEACTUAL_OBJID:
 				case ATTITUDESTATE_OBJID:
 					//show_prio_info = 1;
-					uav_roll =  get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
-					uav_pitch = get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
-					uav_heading	= get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
+					data.uav_roll =  get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
+					data.uav_pitch = get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
+					data.uav_heading = get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
 					break;
 				case ACCELSTATE_OBJID:
-					uav_accel_x = get_float(&msg, ACCELSTATE_OBJ_X);
-					uav_accel_y = get_float(&msg, ACCELSTATE_OBJ_Y);
-					uav_accel_z = get_float(&msg, ACCELSTATE_OBJ_Z);
+					data.uav_accel_x = get_float(&msg, ACCELSTATE_OBJ_X);
+					data.uav_accel_y = get_float(&msg, ACCELSTATE_OBJ_Y);
+					data.uav_accel_z = get_float(&msg, ACCELSTATE_OBJ_Z);
 					break;
 				case GYROSTATE_OBJID:
-					uav_gyro_x = get_float(&msg, GYROSTATE_OBJ_X);
-					uav_gyro_y = get_float(&msg, GYROSTATE_OBJ_Y);
-					uav_gyro_z = get_float(&msg, GYROSTATE_OBJ_Z);
+					data.uav_gyro_x = get_float(&msg, GYROSTATE_OBJ_X);
+					data.uav_gyro_y = get_float(&msg, GYROSTATE_OBJ_Y);
+					data.uav_gyro_z = get_float(&msg, GYROSTATE_OBJ_Z);
 					break;
 				case FLIGHTSTATUS_OBJID:
 				case FLIGHTSTATUS_OBJID_001:
@@ -123,45 +105,45 @@ int UAVTalk::read() {
 				case FLIGHTSTATUS_OBJID_003:
 				case FLIGHTSTATUS_OBJID_004:
 				case FLIGHTSTATUS_OBJID_005:
-					uav_arm = get_int8(&msg, FLIGHTSTATUS_OBJ_ARMED);
-					uav_flightmode = get_int8(&msg, FLIGHTSTATUS_OBJ_FLIGHTMODE);
+					data.uav_arm = get_int8(&msg, FLIGHTSTATUS_OBJ_ARMED);
+					data.uav_flightmode = get_int8(&msg, FLIGHTSTATUS_OBJ_FLIGHTMODE);
 					break;
 				case MANUALCONTROLCOMMAND_OBJID: // OP
 					break;
 				case MANUALCONTROLCOMMAND_OBJID_001: //Taulabs
-					uav_rssi = (uint8_t) get_int16( &msg, MANUALCONTROLCOMMAND_OBJ_001_RSSI);
+					data.uav_rssi = (uint8_t) get_int16( &msg, MANUALCONTROLCOMMAND_OBJ_001_RSSI);
 					break;
 				case GPSPOSITION_OBJID:
 				case GPSPOSITION_OBJID_001:
 				case GPSPOSITIONSENSOR_OBJID:
-					uav_lat	= get_int32(&msg, GPSPOSITION_OBJ_LAT);
-					uav_lon = get_int32(&msg, GPSPOSITION_OBJ_LON);
-					uav_satellites_visible	= (uint8_t) get_int8(&msg, GPSPOSITION_OBJ_SATELLITES);
-					uav_fix_type = (uint8_t) get_int8(&msg, GPSPOSITION_OBJ_STATUS);
-					uav_gpsheading = (int16_t) get_float(&msg, GPSPOSITION_OBJ_HEADING);
+					data.uav_lat = get_int32(&msg, GPSPOSITION_OBJ_LAT);
+					data.uav_lon = get_int32(&msg, GPSPOSITION_OBJ_LON);
+					data.uav_satellites_visible	= (uint8_t) get_int8(&msg, GPSPOSITION_OBJ_SATELLITES);
+					data.uav_fix_type = (uint8_t) get_int8(&msg, GPSPOSITION_OBJ_STATUS);
+					data.uav_gpsheading = (int16_t) get_float(&msg, GPSPOSITION_OBJ_HEADING);
 #ifndef BARO_ALT
-					uav_alt	= (int32_t) round(get_float(&msg, GPSPOSITION_OBJ_ALTITUDE) * 100.0f);
+					//data.uav_alt = (int32_t) round(get_float(&msg, GPSPOSITION_OBJ_ALTITUDE) * 100.0f);
 #endif
-					uav_groundspeed	= (uint16_t)get_float(&msg, GPSPOSITION_OBJ_GROUNDSPEED);
+					data.uav_groundspeed = (uint16_t)get_float(&msg, GPSPOSITION_OBJ_GROUNDSPEED);
 					break;
 
 				case FLIGHTBATTERYSTATE_OBJID:
-					uav_bat	= (int16_t) (1000.0 * get_float(&msg, FLIGHTBATTERYSTATE_OBJ_VOLTAGE));
-					uav_current	= (int16_t) (100.0 * get_float(&msg, FLIGHTBATTERYSTATE_OBJ_CURRENT));
-					uav_amp	= (int16_t) get_float(&msg, FLIGHTBATTERYSTATE_OBJ_CONSUMED_ENERGY);
+					data.uav_bat = (int16_t) (1000.0 * get_float(&msg, FLIGHTBATTERYSTATE_OBJ_VOLTAGE));
+					data.uav_current = (int16_t) (100.0 * get_float(&msg, FLIGHTBATTERYSTATE_OBJ_CURRENT));
+					data.uav_amp = (int16_t) get_float(&msg, FLIGHTBATTERYSTATE_OBJ_CONSUMED_ENERGY);
 					break;
 
 				case BAROALTITUDE_OBJID:
 				case BAROSENSOR_OBJID:
 #ifdef BARO_ALT
-					uav_alt	= (int32_t) round (get_float(&msg, BAROALTITUDE_OBJ_ALTITUDE) * 100.0f);
+					data.uav_alt = (int32_t) round (get_float(&msg, BAROALTITUDE_OBJ_ALTITUDE) * 100.0f);
 #endif
 					break;
 				case OPLINKSTATUS_OBJID:
 				case OPLINKSTATUS_OBJID_001:
-					uav_rssi = get_int8(&msg, OPLINKSTATUS_OBJ_RSSI);
-					uav_linkquality	= (uint8_t) get_int8(&msg, OPLINKSTATUS_OBJ_LINKQUALITY);
-					uav_linkstate = (uint8_t) get_int8(&msg, OPLINKSTATUS_OBJ_LINKSTATE);
+					data.uav_rssi = get_int8(&msg, OPLINKSTATUS_OBJ_RSSI);
+					data.uav_linkquality = (uint8_t) get_int8(&msg, OPLINKSTATUS_OBJ_LINKQUALITY);
+					data.uav_linkstate = (uint8_t) get_int8(&msg, OPLINKSTATUS_OBJ_LINKSTATE);
 					break;
 
 			}
@@ -172,7 +154,7 @@ int UAVTalk::read() {
 
 			return 1;
 		}
-	}
+	//}
 	return 0;
 }
 
@@ -182,25 +164,25 @@ int UAVTalk::state(void) {
 	return 0;
 }
 
-int8_t UAVTalk::get_int8(uavtalk_message_t *msg, int pos) {
+inline int8_t UAVTalk::get_int8(uavtalk_message_t *msg, int pos) {
 	return msg->Data[pos];
 }
 
 // return an int16 from the ms
-int16_t UAVTalk::get_int16(uavtalk_message_t *msg, int pos) {
+inline int16_t UAVTalk::get_int16(uavtalk_message_t *msg, int pos) {
 	int16_t i;
 	memcpy(&i, msg->Data+pos+2, sizeof(int16_t));
 	return i;
 }
 
-int32_t UAVTalk::get_int32(uavtalk_message_t *msg, int pos) {
+inline int32_t UAVTalk::get_int32(uavtalk_message_t *msg, int pos) {
 	int32_t i;
 	memcpy(&i, msg->Data+pos+2, sizeof(int32_t));
 	return i;
 }
 
 // return an float from the ms
-float UAVTalk::get_float(uavtalk_message_t *msg, int pos) {
+inline float UAVTalk::get_float(uavtalk_message_t *msg, int pos) {
 	float f;
 	// What the memcpy is doing
 	//uint32_t temp;

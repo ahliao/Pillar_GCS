@@ -1,14 +1,45 @@
 #include "inc/MissionControl.h"
-//#include "inc/common.h"
 
 MissionControl::MissionControl()
 {
 	// TODO: load in mission from EEPROM or PI
 	mission.numofActions = 3;
 	mission.actionIndex = 0;
-	mission.actions[0] = ACTION_TAKEOFF;
-	mission.actions[1] = ACTION_HOVER;
-	mission.actions[2] = ACTION_LAND;
+	MissionAction action;
+	action.type = ACTION_TAKEOFF;
+	action.altitude = 20;
+	action.waypointX = 0;	// Ignore wp for action_takeoff
+	action.waypointY = 0;
+	mission.actions[0] = action;
+	action.type = ACTION_HOVER;
+	action.altitude = 20;
+	action.waypointX = 0;	// Ignore wp for action_takeoff
+	action.waypointY = 0;
+	mission.actions[1] = action;
+	action.type = ACTION_LAND;
+	action.altitude = 0;
+	action.waypointX = 0;	// Ignore wp for action_takeoff
+	action.waypointY = 0;
+	mission.actions[2] = action;
+
+	telemetry.uav_rssi = 0;
+	telemetry.uav_linkquality = 0;
+	telemetry.uav_failsafe = 0;
+	telemetry.uav_arm = 0;
+	telemetry.uav_flightmode = 0;
+	telemetry.uav_roll = 0;
+	telemetry.uav_pitch = 0;
+	telemetry.uav_heading = 0;
+	telemetry.uav_lat = 0;
+	telemetry.uav_lon = 0;
+	telemetry.uav_satellites_visible = 0;
+	telemetry.uav_fix_type = 0;
+	telemetry.uav_gpsheading = 0;
+	telemetry.uav_alt = 0;
+	telemetry.uav_groundspeed = 0;
+	telemetry.uav_bat = 0;
+	telemetry.uav_current = 0;
+	telemetry.uav_amp = 0;
 }
 
 // Returns a 0 if the current action had no errors
@@ -16,9 +47,12 @@ MissionControl::MissionControl()
 uint8_t MissionControl::runMission() 
 {
 	// Get the new UAVTalk data
-	uavtalk.read();
+	//uavtalk.read(telemetry);
 
-	switch(mission.actions[mission.actionIndex]) {
+	// TODO:Get the altitude reading
+	//telemetry.uav_alt = altimeter.getAltitude();
+
+	switch(mission.actions[mission.actionIndex].type) {
 		case ACTION_TAKEOFF:
 			// Run the safety checks
 			// If problems occurred, return a 1
@@ -28,6 +62,7 @@ uint8_t MissionControl::runMission()
 
 			break;
 		case ACTION_HOVER:
+			// Set the goal altitude as 
 
 			break;
 		case ACTION_WP:
@@ -35,6 +70,9 @@ uint8_t MissionControl::runMission()
 			break;
 		case ACTION_LAND:
 
+			break;
+		default:
+			// Invalid type
 			break;
 	}
 
@@ -46,11 +84,11 @@ uint8_t MissionControl::runMission()
 uint8_t MissionControl::runSafetyChecks() 
 {
 	// Check if the battery is over 15%
-	if (uavtalk.uav_bat < 15) return 1;
+	if (telemetry.uav_bat < 15) return 1;
 	// Check if number of satellites is at least 7
-	if (uavtalk.uav_satellites_visible < 7) return 1;
+	if (telemetry.uav_satellites_visible < 7) return 1;
 
-	// Communication check is done in the main.cppe
+	// Communication check is done in the main.cpp
 
 	return 0;
 }

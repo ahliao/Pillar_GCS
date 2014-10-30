@@ -10,6 +10,8 @@
 #include "inc/UART.h"
 #include "inc/UAVTalk.h"
 #include "inc/MissionControl.h"
+#include "inc/common.h"
+#include "inc/TelemetryData.h"
 
 // SERVO PORTC
 #define SERVO_PIN 3
@@ -19,12 +21,13 @@
 #define HEARTBEAT 6
 
 // Number of PWM channels (Max is about 9 or 10)
-#define PWM_CHANNELS 5
+//#define PWM_CHANNELS 5
 
 // PWM Outputs on PORTC
 #define OUTPUT_PWM 0,1,2,3,4
 
-// PWM Inputs on PORTB
+// PWM Inputs on PORTD
+//#define INPUT_PWM 2,3,4,5,6
 #define INPUT_PWM 0,1,2,3,4
 
 // PWM Variables for control signals
@@ -65,20 +68,21 @@ int main()
 
 	// Set PWM outputs and inputs
 	for (i = 0; i < PWM_CHANNELS; ++i) {
+		//DDRD &= ~(1 << pwm_input_pins[i]);
 		DDRB &= ~(1 << pwm_input_pins[i]);
 		DDRC |= (1 << pwm_output_pins[i]);
 
 		// Activate PWM input pull-up resistors
 		PORTB |= (1 << pwm_input_pins[i]);
 	}
-	DDRD = 0xFE;
+	//DDRD = 0xFE;
 	DDRB |= (1 << 5);
 
 	// Setup 16-bit timer for CTC prescale = 1
 	// TODO: OCR1A > OCR1B
 	TCCR1B |= (1 << CS11) | (1 << WGM12);
 	OCR1A	= 40000;	// every 20ms
-	OCR1B	= 2000;		// 10us seems to be the best resolution we can get
+	OCR1B	= 2000;		// 1ms default setting
 	TIMSK1 |= (1 << OCIE1A) | (1 << OCIE1B);
 
 	// Setup 8-bit timer for CTC prescale = 1
@@ -98,6 +102,7 @@ int main()
 
 	// UAVTalk object to read the UAVObjects
 	UART::initUART(38400, true);
+	UAVTalk uavtalk;
 	MissionControl missionControl;
 
 	// Initialize variables
@@ -113,6 +118,8 @@ int main()
 		pwm_desired_sums[i] = sum;
 	}
 
+	TelemetryData data;
+
 	while(1) 
 	{	
 		// TODO: Add a check on uav incoming data limits
@@ -121,8 +128,8 @@ int main()
 		// TODO: Check if data is being received
 		// else the read will hang (check newData)
 		/*if (autopilot_state != AUTOPILOT_EMERGENCY && telemetry_update) {
-			missionControl.runMission();
-			if(uavtalk.read()) {
+			//missionControl.runMission();
+			if(uavtalk.read(data)) {
 				uint32_t temp; 
 				memcpy(&temp, &uav_roll, sizeof(float));
 				UART::writeByte(temp >> 24);
