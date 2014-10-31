@@ -13,13 +13,6 @@
 #include "inc/common.h"
 #include "inc/TelemetryData.h"
 
-// SERVO PORTC
-#define SERVO_PIN 3
-
-// LED0 PORTD
-#define LED0_PIN 5
-#define HEARTBEAT 6
-
 // Number of PWM channels (Max is about 9 or 10)
 //#define PWM_CHANNELS 5
 
@@ -97,29 +90,35 @@ int main()
 			| (1 << PCINT3) | (1 << PCINT4);
 	//PCMSK0 |= (1 << PCINT0);
 	PCICR |= (1 << PCIE0);
-
 	sei();	// Global interrupts on
 
 	// UAVTalk object to read the UAVObjects
 	UART::initUART(38400, true);
-	UAVTalk uavtalk;
-	MissionControl missionControl;
+	//UAVTalk uavtalk;
+	MPL3115A2 altimeter;
+	altimeter.init();
+
+
+	// Mission Control to handle upper-level wp control
+	//MissionControl missionControl;
+
+	// Data structure for holding telemetry and GPS
+	//TelemetryData data;
 
 	// Initialize variables
 	// Initialize the desired PWM for testing
-	pwm_desired[0] = 2000;
-	pwm_desired[1] = 2500;
-	pwm_desired[2] = 3000;
-	pwm_desired[3] = 3500;
-	pwm_desired[4] = 4000;
+	pwm_desired[0] = 0;
+	pwm_desired[1] = 0;
+	pwm_desired[2] = 0;
+	pwm_desired[3] = 0;
+	pwm_desired[4] = 0;
 	uint16_t sum = 0;
 	for (i = 0; i < PWM_CHANNELS; ++i) {
 		sum += pwm_desired[i];
 		pwm_desired_sums[i] = sum;
 	}
 
-	TelemetryData data;
-
+	//UART::writeByte('h');
 	while(1) 
 	{	
 		// TODO: Add a check on uav incoming data limits
@@ -127,21 +126,29 @@ int main()
 		// For testing, forward uav_roll to UART
 		// TODO: Check if data is being received
 		// else the read will hang (check newData)
-		/*if (autopilot_state != AUTOPILOT_EMERGENCY && telemetry_update) {
+		//if (autopilot_state != AUTOPILOT_EMERGENCY && telemetry_update) {
+		if (telemetry_update) {
+			float alt = altimeter.getAltitude();
+			uint32_t temp; 
+			memcpy(&temp, &alt, sizeof(float));
+			UART::writeByte(temp >> 24);
+			UART::writeByte(temp >> 16);
+			UART::writeByte(temp >> 8);
+			UART::writeByte(temp);
 			//missionControl.runMission();
-			if(uavtalk.read(data)) {
+			/*if(uavtalk.read(data)) {
 				uint32_t temp; 
-				memcpy(&temp, &uav_roll, sizeof(float));
+				memcpy(&temp, &data.uav_roll, sizeof(float));
 				UART::writeByte(temp >> 24);
 				UART::writeByte(temp >> 16);
 				UART::writeByte(temp >> 8);
 				UART::writeByte(temp);
-			}
+			}*/
 			telemetry_update = 0;	
-		}*/
+		}
 
 		// TEST: Check the flight mode switch 
-		if (autopilot_state == AUTOPILOT_MANUAL) {
+		/*if (autopilot_state == AUTOPILOT_MANUAL) {
 			if (pwm_switch_counter > 3500) {
 				PORTB |= (1 << 5);	
 				autopilot_state = AUTOPILOT_TEST;
@@ -168,7 +175,7 @@ int main()
 			//PORTB |= (1 << 5);	
 		} else {
 			//PORTB &= ~(1 << 5);
-		}
+		}*/
 	}
 
 	return 0;

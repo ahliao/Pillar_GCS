@@ -56,7 +56,7 @@ int UAVTalk::read(TelemetryData& data) {
 
 	uint8_t c;
 	// TODO: Figure out a better way to do this?
-	//while(1) {
+	while(1) {
 	// Grab the data
 	// TODO: Make this not holding?
 		while (!UART::UART_newData);
@@ -154,7 +154,7 @@ int UAVTalk::read(TelemetryData& data) {
 
 			return 1;
 		}
-	//}
+	}
 	return 0;
 }
 

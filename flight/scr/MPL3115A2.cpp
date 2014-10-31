@@ -3,6 +3,7 @@
 
 #include "inc/MPL3115A2.h"
 #include "inc/I2C.h"
+#include "inc/UART.h"
 
 MPL3115A2::MPL3115A2()
 {
@@ -11,15 +12,16 @@ MPL3115A2::MPL3115A2()
 // Initializes the hardware and setups the values
 uint8_t MPL3115A2::init(void)
 {
+
 	// Starting twi
 	I2C::init();
 
 	// sending start condition
-	if (I2C::start() != TW_START) 
-		return 1;
+	//if (I2C::start() != TW_START) 
+	//	return 1;
 
 	uint8_t whoami = readFromReg(MPL3115A2_WHOAMI);
-	if (whoami != MPL3115A2_ADDRESS) return 2;
+	if (whoami != 0xC4) return 2;
 
 	writeToReg(MPL3115A2_CTRL_REG1, MPL3115A2_CTRL_REG1_SBYB 
 			| MPL3115A2_CTRL_REG1_OS128 | MPL3115A2_CTRL_REG1_ALT);
@@ -39,7 +41,7 @@ float MPL3115A2::getPressure(void)
 // Returns the altitude 
 float MPL3115A2::getAltitude(void)
 {
-	toggleOneShot();
+	//toggleOneShot();
 
 	uint32_t alt;
 	uint8_t counter = 0;
@@ -89,6 +91,7 @@ uint8_t MPL3115A2::readFromReg(uint8_t addr)
 	I2C::write((MPL3115A2_ADDRESS << 1 & 0xFE) | TW_WRITE);
 	I2C::write(addr);
 	I2C::stop();
+	I2C::start();
 	I2C::write(((MPL3115A2_ADDRESS << 1) & 0xFE) | (TW_READ));
 	uint8_t in = I2C::readNack();
 	I2C::stop();
