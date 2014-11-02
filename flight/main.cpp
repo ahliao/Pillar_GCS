@@ -37,7 +37,7 @@ uint8_t pwm_input_pins[PWM_CHANNELS] = { INPUT_PWM };
 uint8_t portbhistory = 0xFF;
 
 // Update telemetry boolean
-volatile bool telemetry_update = 0;
+volatile uint8_t telemetry_update = 0;
 
 // RC watchdog counter
 volatile uint8_t watchdog_counter = 0;
@@ -118,7 +118,6 @@ int main()
 		pwm_desired_sums[i] = sum;
 	}
 
-	//UART::writeByte('h');
 	while(1) 
 	{	
 		// TODO: Add a check on uav incoming data limits
@@ -127,7 +126,7 @@ int main()
 		// TODO: Check if data is being received
 		// else the read will hang (check newData)
 		//if (autopilot_state != AUTOPILOT_EMERGENCY && telemetry_update) {
-		if (telemetry_update) {
+		if (telemetry_update > 20) {
 			float alt = altimeter.getAltitude();
 			uint32_t temp; 
 			memcpy(&temp, &alt, sizeof(float));
@@ -135,6 +134,12 @@ int main()
 			UART::writeByte(temp >> 16);
 			UART::writeByte(temp >> 8);
 			UART::writeByte(temp);
+			/*float temperature = altimeter.getTemperature();
+			memcpy(&temp, &temperature, sizeof(float));
+			UART::writeByte(temp >> 24);
+			UART::writeByte(temp >> 16);
+			UART::writeByte(temp >> 8);
+			UART::writeByte(temp);*/
 			//missionControl.runMission();
 			/*if(uavtalk.read(data)) {
 				uint32_t temp; 
@@ -193,7 +198,7 @@ ISR(TIMER1_COMPA_vect)
 		sum += pwm_desired[i];
 		pwm_desired_sums[i] = sum;
 	}
-	telemetry_update = 1;	// Update the telemetry every 20ms
+	telemetry_update++;	// Update the telemetry every 20ms
 
 	// Check state
 	// If lost connection

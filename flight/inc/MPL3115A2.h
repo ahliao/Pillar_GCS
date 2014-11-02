@@ -69,6 +69,9 @@ class MPL3115A2{
 	private:
 		void toggleOneShot();
 
+		void standBy();
+		void active();
+
 		uint8_t readFromReg(uint8_t a);
 
 		void writeToReg(uint8_t a, uint8_t d);
