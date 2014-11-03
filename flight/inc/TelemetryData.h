@@ -26,7 +26,7 @@ typedef struct _TelemeteryData
 
 	int32_t uav_lat;
 	int32_t uav_lon;
-	int32_t uav_alt;
+	float uav_alt;
 
 	float uav_roll;
 	float uav_pitch;

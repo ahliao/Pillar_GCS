@@ -1,4 +1,6 @@
+#include <string.h>
 #include "inc/MissionControl.h"
+#include "inc/UART.h"
 
 MissionControl::MissionControl()
 {
@@ -40,6 +42,8 @@ MissionControl::MissionControl()
 	telemetry.uav_bat = 0;
 	telemetry.uav_current = 0;
 	telemetry.uav_amp = 0;
+
+	altimeter.init();
 }
 
 // Returns a 0 if the current action had no errors
@@ -47,10 +51,25 @@ MissionControl::MissionControl()
 uint8_t MissionControl::runMission() 
 {
 	// Get the new UAVTalk data
-	//uavtalk.read(telemetry);
+	uavtalk.read(telemetry);
+
+	uint32_t temp; 
+	memcpy(&temp, &telemetry.uav_pitch, sizeof(float));
+	UART::writeByte(temp >> 24);
+	UART::writeByte(temp >> 16);
+	UART::writeByte(temp >> 8);
+	UART::writeByte(temp);
 
 	// TODO:Get the altitude reading
-	//telemetry.uav_alt = altimeter.getAltitude();
+	float tempalt = altimeter.getAltitude();
+	if (tempalt != -999)
+		telemetry.uav_alt = tempalt;
+
+	memcpy(&temp, &telemetry.uav_alt, sizeof(float));
+	UART::writeByte(temp >> 24);
+	UART::writeByte(temp >> 16);
+	UART::writeByte(temp >> 8);
+	UART::writeByte(temp);
 
 	switch(mission.actions[mission.actionIndex].type) {
 		case ACTION_TAKEOFF:
