@@ -77,7 +77,7 @@ int main()
 	// Setup 16-bit timer for CTC prescale = 1
 	// TODO: OCR1A > OCR1B
 	TCCR1B |= (1 << CS11) | (1 << WGM12);
-	OCR1A	= 39443;	// every 20ms
+	OCR1A	= 39445;	// every 20ms
 	OCR1B	= 2000;		// 1ms default setting
 	TIMSK1 |= (1 << OCIE1A) | (1 << OCIE1B);
 
@@ -89,15 +89,11 @@ int main()
 			| (1 << PCINT21) | (1 << PCINT22);
 	PCICR |= (1 << PCIE2) | (1 << PCIE0);
 
-	// UAVTalk object to read the UAVObjects
-	//UART::initUART(38400, true);
-	//UAVTalk uavtalk;
+	// Initialize UART communication for UAVTalk
+	UART::initUART(38400, true);
 
 	// Mission Control to handle upper-level wp control
-	//MissionControl missionControl;
-
-	// Data structure for holding telemetry and GPS
-	//TelemetryData data;
+	MissionControl missionControl;
 
 	// Initialize variables
 	// Initialize the desired PWM for testing
@@ -147,29 +143,6 @@ int main()
 			}*/
 			//telemetry_update = 0;	
 		//}
-
-		// TEST: Check the flight mode switch 
-		/*if (autopilot_state == AUTOPILOT_MANUAL) {
-			if (pwm_switch_counter > 3500) {
-				PORTB |= (1 << 5);	
-				autopilot_state = AUTOPILOT_TEST;
-				pwm_desired[0] = 3000;
-				pwm_desired[1] = 2000;
-				pwm_desired[2] = 4000;
-				pwm_desired[3] = 3000;
-				pwm_desired[4] = 4000;
-			}
-		} else if (autopilot_state == AUTOPILOT_TEST) {
-			if (pwm_switch_counter > 1500 && pwm_switch_counter < 2250) {
-				PORTB &= ~(1 << 5);
-				autopilot_state = AUTOPILOT_MANUAL;
-			}
-		} else if (autopilot_state == AUTOPILOT_EMERGENCY) {
-			// TODO: Run the altitude controller for landing
-			pwm_desired[0] = 2920;
-			pwm_desired[2] = 2950;
-			pwm_desired[3] = 2980;
-		}*/
 	}
 
 	return 0;
@@ -178,7 +151,7 @@ int main()
 // Timer Interrupt for A
 ISR(TIMER1_COMPA_vect)
 {
-	// Increment the 20ms PWM counter
+	// Increment the 19.7ms PWM counter
 	pwm_outputs = 0x01;
 	if (pwm_desired[0] > 0)
 		PORTC |= (1 << pwm_output_pins[0]);
@@ -194,38 +167,35 @@ ISR(TIMER1_COMPA_vect)
 
 	// Communication check watchdog logic
 
-	// Check state
-	// If lost connection
+	// If lost connection, handle recovery/hover
 	/*if (autopilot_state == AUTOPILOT_EMERGENCY) {
-		if (pwm_switch_counter > 3500) {
+		if (pwm_desired[4] > 3500) {
 			autopilot_state = AUTOPILOT_TEST;
 			pwm_desired[0] = 2000;
 			pwm_desired[1] = 2500;
 			pwm_desired[2] = 3000;
 			pwm_desired[3] = 3500;
 			pwm_desired[4] = 4000;
-		} else if (pwm_switch_counter > 1500) {
+		} else if (pwm_desired[4] > 1500) {
 			autopilot_state = AUTOPILOT_MANUAL;
 		}
-		if (pwm_desired[1] > 100)
-			--pwm_desired[1];
 	}*/
 
 	// If no inputs from receiver, increment watchdog
 	// If the watchdog_counter is past 5, assume connection lost
-	/*if(autopilot_state != AUTOPILOT_EMERGENCY && ++watchdog_counter > 5) {
+	if(autopilot_state != AUTOPILOT_EMERGENCY && ++watchdog_counter > 5) {
 		autopilot_state = AUTOPILOT_EMERGENCY;
-		// Set the initial standby values (hover)
-		pwm_desired[0] = 2920;
-		pwm_desired[1] = 2900;
-		pwm_desired[2] = 2950;
-		pwm_desired[3] = 2980;
-		pwm_desired[4] = 2000;		// TODO: have global counter for just the switch
-		pwm_switch_counter = 0;
-	}*/
+		// Shut down everything
+		pwm_desired[0] = 0;
+		pwm_desired[1] = 0;
+		pwm_desired[2] = 0;
+		pwm_desired[3] = 0;
+		pwm_desired[4] = 0;	
+	}
 }
 
 // Timer 1 Interrupt for B
+// Handles the individual channel PWM lengths
 ISR(TIMER1_COMPB_vect)
 {
 	if (pwm_outputs > 0) {
@@ -255,14 +225,15 @@ ISR(PCINT2_vect)
 	changedbits = PIND ^ portdhistory;
 	portdhistory = PIND;
 
+	// Reset the watchdog
 	watchdog_counter = 0;
-	//autopilot_state = AUTOPILOT_MANUAL;
-	
 
+	// TODO: Check only the current and next channel (adjencent)
 	uint8_t input_curr = 0;
 	int32_t temp = 0;
-	//if (autopilot_state != AUTOPILOT_MANUAL) i = 4;
+	if (autopilot_state != AUTOPILOT_MANUAL) input_curr = 4;
 	for (; input_curr < PWM_CHANNELS; ++input_curr) {
+		// First see if this pin changed, else save from doing two if's
 		if (changedbits & (1 << (input_curr + 2)))
 		{
 			if (PIND & (1 << (input_curr + 2))) {
@@ -277,6 +248,12 @@ ISR(PCINT2_vect)
 				// Make sure the difference is a positive and in a reasonable range
 				if (temp > 0 && temp < 4500) //pwm_desired[input_curr] = (TCNT1 - pwm_input_starts[input_curr]);
 					pwm_desired[input_curr] = temp;
+
+				// Check if communication is working again by checking the switch
+				if (autopilot_state == AUTOPILOT_EMERGENCY && input_curr == 4) {
+					if (pwm_desired[4] > 3300) autopilot_state = AUTOPILOT_TEST;
+					else if (pwm_desired[4] > 1000) autopilot_state = AUTOPILOT_MANUAL;
+				}
 			}
 		}
 	}

@@ -43,7 +43,9 @@ MissionControl::MissionControl()
 	telemetry.uav_current = 0;
 	telemetry.uav_amp = 0;
 
-	altimeter.init();
+	if (!altimeter.init()) {
+		// TODO: Handle an error in I2C
+	}
 }
 
 // Returns a 0 if the current action had no errors
@@ -51,25 +53,25 @@ MissionControl::MissionControl()
 uint8_t MissionControl::runMission() 
 {
 	// Get the new UAVTalk data
-	uavtalk.read(telemetry);
+	//uavtalk.read(telemetry);
 
-	uint32_t temp; 
+	/*uint32_t temp; 
 	memcpy(&temp, &telemetry.uav_pitch, sizeof(float));
 	UART::writeByte(temp >> 24);
 	UART::writeByte(temp >> 16);
 	UART::writeByte(temp >> 8);
-	UART::writeByte(temp);
+	UART::writeByte(temp);*/
 
 	// TODO:Get the altitude reading
-	float tempalt = altimeter.getAltitude();
+	/*float tempalt = altimeter.getAltitude();
 	if (tempalt != -999)
-		telemetry.uav_alt = tempalt;
+		telemetry.uav_alt = tempalt;*/
 
-	memcpy(&temp, &telemetry.uav_alt, sizeof(float));
+	/*memcpy(&temp, &telemetry.uav_alt, sizeof(float));
 	UART::writeByte(temp >> 24);
 	UART::writeByte(temp >> 16);
 	UART::writeByte(temp >> 8);
-	UART::writeByte(temp);
+	UART::writeByte(temp);*/
 
 	switch(mission.actions[mission.actionIndex].type) {
 		case ACTION_TAKEOFF:

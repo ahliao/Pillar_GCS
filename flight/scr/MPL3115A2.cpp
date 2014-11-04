@@ -16,9 +16,10 @@ uint8_t MPL3115A2::init(void)
 	// Starting twi
 	I2C::init();
 
-	// sending start condition
-	//if (I2C::start() != TW_START) 
-	//	return 1;
+	// Test if I2C is working
+	if (I2C::start() != TW_START) 
+		return 1;
+	I2C::stop();
 
 	uint8_t whoami = readFromReg(MPL3115A2_WHOAMI);
 	if (whoami != 0xC4) return 2;
