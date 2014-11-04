@@ -18,17 +18,17 @@ class FlightControl
 
 		// Pitch controller
 		// Input is the desired pitch angle (attitude)
-		void pitchControl(const int32_t pitch_goal,
+		void pitchControl(const float pitch_goal,
 				const TelemetryData& telemetry);
 
 		// Roll controller
 		// Input is the desired roll angle (attitude)
-		void rollControl(const int32_t roll_goal,
+		void rollControl(const float roll_goal,
 				const TelemetryData& telemetry);
 
 		// Yaw controller
 		// Input is the desired yaw angle (attitude)
-		void yawControl(const int32_t yaw_goal,
+		void yawControl(const float yaw_goal,
 				const TelemetryData& telemetry);
 
 		// WP Controller
@@ -36,7 +36,8 @@ class FlightControl
 				const TelemetryData& telemetry);
 
 	private:
-		
+		// Controll constants
+		const static float roll_k = 1;
 
 };
 

@@ -48,7 +48,7 @@ volatile uint16_t pwm_switch_counter = 0;
 // Autopilot State
 typedef enum {
 	AUTOPILOT_MANUAL,
-	AUTOPILOT_TEST,	// Temp test state, TODO: Switch to autopilot controller (Mission Planner
+	AUTOPILOT_AUTO,	// Temp test state, TODO: Switch to autopilot controller (Mission Planner
 	AUTOPILOT_EMERGENCY
 } AutopilotState;
 volatile AutopilotState autopilot_state = AUTOPILOT_MANUAL;
@@ -143,6 +143,23 @@ int main()
 			}*/
 			//telemetry_update = 0;	
 		//}
+
+		// Check for a change in the switch (channel 5)
+		switch (autopilot_state) {
+			case AUTOPILOT_MANUAL:
+				// If switch is flipped up, switch to auto mode
+				if (pwm_switch_counter > 3300) autopilot_state = AUTOPILOT_AUTO;
+				break;
+			case AUTOPILOT_AUTO:
+				// If switch is flipped down, switch to manual mode
+				if (pwm_switch_counter < 2500) autopilot_state = AUTOPILOT_MANUAL;
+				break;
+			case AUTOPILOT_EMERGENCY:
+				break;
+			default:
+				// Error occurred
+				autopilot_state = AUTOPILOT_EMERGENCY;
+		}
 	}
 
 	return 0;
@@ -231,6 +248,8 @@ ISR(PCINT2_vect)
 	// TODO: Check only the current and next channel (adjencent)
 	uint8_t input_curr = 0;
 	int32_t temp = 0;
+	
+	// Only read inputs if in manual mode (TODO: more flexible?)
 	if (autopilot_state != AUTOPILOT_MANUAL) input_curr = 4;
 	for (; input_curr < PWM_CHANNELS; ++input_curr) {
 		// First see if this pin changed, else save from doing two if's
@@ -247,11 +266,16 @@ ISR(PCINT2_vect)
 				}
 				// Make sure the difference is a positive and in a reasonable range
 				if (temp > 0 && temp < 4500) //pwm_desired[input_curr] = (TCNT1 - pwm_input_starts[input_curr]);
+				{
+					// Set PWM output to the delta time found
 					pwm_desired[input_curr] = temp;
+					// Always track the switch output
+					if (input_curr == 4) pwm_switch_counter = temp;
+				}
 
 				// Check if communication is working again by checking the switch
 				if (autopilot_state == AUTOPILOT_EMERGENCY && input_curr == 4) {
-					if (pwm_desired[4] > 3300) autopilot_state = AUTOPILOT_TEST;
+					if (pwm_desired[4] > 3300) autopilot_state = AUTOPILOT_AUTO;
 					else if (pwm_desired[4] > 1000) autopilot_state = AUTOPILOT_MANUAL;
 				}
 			}
