@@ -1,11 +1,12 @@
 obj/main.o: main.cpp inc/UART.h inc/UAVTalk.h inc/TelemetryData.h \
- inc/MissionControl.h inc/UAVTalk.h inc/MPL3115A2.h inc/common.h \
- inc/TelemetryData.h
+ inc/MissionControl.h inc/UAVTalk.h inc/MPL3115A2.h inc/FlightControl.h \
+ inc/common.h inc/TelemetryData.h
 obj/FlightControl.o: scr/FlightControl.cpp inc/FlightControl.h \
  inc/TelemetryData.h inc/common.h
 obj/I2C.o: scr/I2C.cpp inc/I2C.h
 obj/MissionControl.o: scr/MissionControl.cpp inc/MissionControl.h \
- inc/UAVTalk.h inc/TelemetryData.h inc/MPL3115A2.h inc/UART.h
+ inc/UAVTalk.h inc/TelemetryData.h inc/MPL3115A2.h inc/FlightControl.h \
+ inc/UART.h
 obj/MPL3115A2.o: scr/MPL3115A2.cpp inc/MPL3115A2.h inc/I2C.h inc/UART.h
 obj/UART.o: scr/UART.cpp inc/UART.h
 obj/UAVTalk.o: scr/UAVTalk.cpp inc/UAVTalk.h inc/TelemetryData.h inc/UART.h

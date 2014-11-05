@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include "inc/UAVTalk.h"
 #include "inc/MPL3115A2.h"
+#include "inc/FlightControl.h"
 
 typedef enum 
 {
@@ -50,8 +51,11 @@ class MissionControl
 		uint8_t runSafetyChecks();
 
 		Mission mission;
+		FlightControl flightcontrol;
+
 		UAVTalk uavtalk;
 		MPL3115A2 altimeter;
+
 		TelemetryData telemetry;
 
 };

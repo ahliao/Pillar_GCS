@@ -54,9 +54,11 @@ int UAVTalk::read(TelemetryData& data) {
 	//static uint8_t crlf_count = 0;
 	//uint8_t show_prio_info = 0;
 
+	uint16_t i = 0;
 	uint8_t c;
 	// TODO: Figure out a better way to do this?
-	while(1) {
+	// Run for a max of 999 times, then timeout
+	for (; i < 1000; ++i) {
 	// Grab the data
 	// TODO: Make this not holding?
 		while (!UART::UART_newData);

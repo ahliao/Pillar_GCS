@@ -81,6 +81,11 @@ uint8_t MissionControl::runMission()
 			
 			// Set the goal altitude and run the altitude controller
 
+			// Set the roll and pitch angles to be 0.00
+
+			// Set the yaw to be stationary
+
+
 			break;
 		case ACTION_HOVER:
 			// Set the goal altitude as 
