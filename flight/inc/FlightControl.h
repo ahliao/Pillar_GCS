@@ -38,7 +38,18 @@ class FlightControl
 	private:
 		// Controll constants
 		const static float roll_k = 1;
+		const static float pitch_Kp = 200;
+		const static float pitch_Ki = 0;
+		const static float pitch_Kd = 0;
 
+		const static uint16_t pwm_max = 255;
+		const static uint16_t pwm_min = 0; 
+
+		const static long sample_time = 100;
+		unsigned long last_time;
+
+		//float I_term = 0;
+		//float last_pitch;
 };
 
 #endif

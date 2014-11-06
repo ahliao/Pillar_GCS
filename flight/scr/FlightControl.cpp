@@ -39,6 +39,10 @@ void FlightControl::rollControl(const float roll_goal,
 	// Scale the error by K and adjust the input
 	input = input + error * roll_k;
 
+	// Limit the input roll
+	if (input < 2500) input = 2500;
+	else if (input > 3500) input = 3500;
+
 	// Load new desired PWM into channel 4
 	pwm_desired[3] = input;
 }

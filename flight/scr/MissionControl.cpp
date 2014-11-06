@@ -43,9 +43,9 @@ MissionControl::MissionControl()
 	telemetry.uav_current = 0;
 	telemetry.uav_amp = 0;
 
-	if (!altimeter.init()) {
+	//if (!altimeter.init()) {
 		// TODO: Handle an error in I2C
-	}
+	//}
 }
 
 // Returns a 0 if the current action had no errors
@@ -53,14 +53,14 @@ MissionControl::MissionControl()
 uint8_t MissionControl::runMission() 
 {
 	// Get the new UAVTalk data
-	//uavtalk.read(telemetry);
+	uavtalk.read(telemetry);
 
-	/*uint32_t temp; 
-	memcpy(&temp, &telemetry.uav_pitch, sizeof(float));
+	uint32_t temp; 
+	memcpy(&temp, &telemetry.uav_roll, sizeof(float));
 	UART::writeByte(temp >> 24);
 	UART::writeByte(temp >> 16);
 	UART::writeByte(temp >> 8);
-	UART::writeByte(temp);*/
+	UART::writeByte(temp);
 
 	// TODO:Get the altitude reading
 	/*float tempalt = altimeter.getAltitude();
@@ -77,11 +77,12 @@ uint8_t MissionControl::runMission()
 		case ACTION_TAKEOFF:
 			// Run the safety checks
 			// If problems occurred, return a 1
-			if (runSafetyChecks()) return 1;
+			//if (runSafetyChecks()) return 1;
 			
 			// Set the goal altitude and run the altitude controller
 
 			// Set the roll and pitch angles to be 0.00
+			flightcontrol.rollControl(0.00, telemetry);
 
 			// Set the yaw to be stationary
 

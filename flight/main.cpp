@@ -90,7 +90,7 @@ int main()
 	UART::initUART(38400, true);
 
 	// Mission Control to handle upper-level wp control
-	//MissionControl missionControl;
+	MissionControl missionControl;
 
 	// Initialize variables
 	// Initialize the desired PWM for testing
@@ -109,38 +109,6 @@ int main()
 
 	while(1) 
 	{	
-		// TODO: Add a check on uav incoming data limits
-		// Telemetry is updated every 20ms (can be faster)
-		// For testing, forward uav_roll to UART
-		// TODO: Check if data is being received
-		// else the read will hang (check newData)
-		//if (autopilot_state != AUTOPILOT_EMERGENCY && telemetry_update) {
-		//if (autopilot_state == AUTOPILOT_TEST && telemetry_update > 1) {
-			/*float alt = altimeter.getAltitude();
-			uint32_t temp; 
-			memcpy(&temp, &alt, sizeof(float));
-			UART::writeByte(temp >> 24);
-			UART::writeByte(temp >> 16);
-			UART::writeByte(temp >> 8);
-			UART::writeByte(temp);*/
-			/*float temperature = altimeter.getTemperature();
-			memcpy(&temp, &temperature, sizeof(float));
-			UART::writeByte(temp >> 24);
-			UART::writeByte(temp >> 16);
-			UART::writeByte(temp >> 8);
-			UART::writeByte(temp);*/
-			//missionControl.runMission();
-			/*if(uavtalk.read(data)) {
-				uint32_t temp; 
-				memcpy(&temp, &data.uav_roll, sizeof(float));
-				UART::writeByte(temp >> 24);
-				UART::writeByte(temp >> 16);
-				UART::writeByte(temp >> 8);
-				UART::writeByte(temp);
-			}*/
-			//telemetry_update = 0;	
-		//}
-
 		// Check for a change in the switch (channel 5)
 		switch (autopilot_state) {
 			case AUTOPILOT_MANUAL:
@@ -152,10 +120,19 @@ int main()
 				if (pwm_switch_counter < 2500) autopilot_state = AUTOPILOT_MANUAL;
 
 				// Run MissionControl
+				missionControl.runMission();
+				// TEST:
+				/*pwm_desired[0] = 3000;
+				pwm_desired[1] = 3000;
+				pwm_desired[2] = 3000;
+				pwm_desired[3] = 3000;
+				pwm_desired[4] = 3000;*/
 
 				break;
 			case AUTOPILOT_EMERGENCY:
 				// Handle Emergency mode logic
+				if (pwm_switch_counter > 3300) autopilot_state = AUTOPILOT_AUTO;
+				else if (pwm_switch_counter < 2500 && pwm_switch_counter > 1000) autopilot_state = AUTOPILOT_MANUAL;
 				break;
 			default:
 				// Error occurred; Go into emergency
@@ -175,17 +152,11 @@ ISR(TIMER1_COMPA_vect)
 		PORTC |= (1 << pwm_output_pins[0]);
 
 	// Recalculate the PWM timer goal values
-	/*int16_t sum = -10;	// Offset the first channel
-	for (uint8_t i = 0; i < PWM_CHANNELS; ++i) {
-		sum += pwm_desired[i] + 10;	// There's some delay added
-		pwm_desired_sums[i] = sum;
-	}*/
-	// TODO: Add in a offset delay
 	pwm_desired_sums[0] = pwm_desired[0];
-	pwm_desired_sums[1] = pwm_desired_sums[0] + pwm_desired[1];
-	pwm_desired_sums[2] = pwm_desired_sums[1] + pwm_desired[2];
-	pwm_desired_sums[3] = pwm_desired_sums[2] + pwm_desired[3];
-	pwm_desired_sums[4] = pwm_desired_sums[3] + pwm_desired[4];
+	pwm_desired_sums[1] = pwm_desired_sums[0] + pwm_desired[1] + 12;
+	pwm_desired_sums[2] = pwm_desired_sums[1] + pwm_desired[2] + 12;
+	pwm_desired_sums[3] = pwm_desired_sums[2] + pwm_desired[3] + 12;
+	pwm_desired_sums[4] = pwm_desired_sums[3] + pwm_desired[4] + 12;
 
 	telemetry_update++;	// Update the telemetry every 20ms
 
@@ -196,8 +167,9 @@ ISR(TIMER1_COMPA_vect)
 	if(autopilot_state != AUTOPILOT_EMERGENCY && ++watchdog_counter > 5) {
 		autopilot_state = AUTOPILOT_EMERGENCY;
 		// Shut down everything
+		pwm_switch_counter = 0;
 		pwm_desired[0] = 3000;
-		pwm_desired[1] = 3000;
+		pwm_desired[1] = 1000;
 		pwm_desired[2] = 3000;
 		pwm_desired[3] = 3000;
 		pwm_desired[4] = 3000;	
@@ -256,7 +228,8 @@ ISR(PCINT2_vect)
 			if (temp > 0 && temp < 4500) //pwm_desired[input_curr] = (TCNT1 - pwm_input_starts[input_curr]);
 			{
 				// Set PWM output to the delta time found
-				pwm_desired[0] = temp;
+				if (autopilot_state == AUTOPILOT_MANUAL)
+					pwm_desired[0] = (temp + pwm_desired[0]) / 2;
 			}
 		}
 	}
@@ -274,7 +247,8 @@ ISR(PCINT2_vect)
 			if (temp > 0 && temp < 4500) //pwm_desired[input_curr] = (TCNT1 - pwm_input_starts[input_curr]);
 			{
 				// Set PWM output to the delta time found
-				pwm_desired[1] = temp;
+				if (autopilot_state == AUTOPILOT_MANUAL)
+					pwm_desired[1] = (temp + pwm_desired[1]) / 2;
 			}
 		}
 	}
@@ -292,7 +266,8 @@ ISR(PCINT2_vect)
 			if (temp > 0 && temp < 4500) //pwm_desired[input_curr] = (TCNT1 - pwm_input_starts[input_curr]);
 			{
 				// Set PWM output to the delta time found
-				pwm_desired[2] = temp;
+				if (autopilot_state == AUTOPILOT_MANUAL)
+					pwm_desired[2] = (temp + pwm_desired[2]) / 2;
 			}
 		}
 	}
@@ -310,7 +285,8 @@ ISR(PCINT2_vect)
 			if (temp > 0 && temp < 4500) //pwm_desired[input_curr] = (TCNT1 - pwm_input_starts[input_curr]);
 			{
 				// Set PWM output to the delta time found
-				pwm_desired[3] = temp;
+				if (autopilot_state == AUTOPILOT_MANUAL)
+					pwm_desired[3] = (temp + pwm_desired[3]) / 2;
 			}
 		}
 	}
@@ -328,7 +304,8 @@ ISR(PCINT2_vect)
 			if (temp > 0 && temp < 4500) //pwm_desired[input_curr] = (TCNT1 - pwm_input_starts[input_curr]);
 			{
 				// Set PWM output to the delta time found
-				pwm_desired[4] = temp;
+				if (autopilot_state == AUTOPILOT_MANUAL)
+					pwm_desired[4] = (temp + pwm_desired[4]) / 2;
 				// Always track the switch output
 				pwm_switch_counter = temp;
 			}
