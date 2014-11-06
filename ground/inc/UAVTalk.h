@@ -10,7 +10,9 @@
 #define UAVTALK_H
 
 #include <stdint.h>
+#include <fstream>
 #include <QSerialPort>
+#include <QDateTime>
 
 class MainWindow;
 
@@ -289,6 +291,10 @@ class UAVTalk : public QObject
 
 		QSerialPort *serial;
 		MainWindow *mainwindow;
+
+		std::ofstream of;
+		unsigned long long logindex;
+		QTime time;
 
 	public slots:
 		int read();

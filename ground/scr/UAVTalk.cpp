@@ -66,6 +66,10 @@ UAVTalk::UAVTalk(MainWindow* parent=0) {
 
 	// Make serialport and set the configs
 	serial = new QSerialPort(this);
+
+	of.open("logs/pitchdata.txt", std::ofstream::out);
+	logindex = 0;
+	time.start();
 	//openSerialPort();
 
 	connect(serial, SIGNAL(readyRead()), this, SLOT(read()));
@@ -73,6 +77,7 @@ UAVTalk::UAVTalk(MainWindow* parent=0) {
 
 UAVTalk::~UAVTalk() {
 	closeSerialPort();
+	of.close();
 }
 
 // Read from the serial stream
@@ -89,7 +94,7 @@ int UAVTalk::read() {
 	cerr <<  (int) c << endl;
 	c = readByte();
 	cerr <<  (int) c << endl;*/
-	uint32_t temp = 0;
+	/*uint32_t temp = 0;
 	float f;
 	uint8_t c = readByte();
 	temp |= c << 24;
@@ -100,11 +105,26 @@ int UAVTalk::read() {
 	c = readByte();
 	temp |= c;
 	memcpy(&f, &temp, sizeof(float));
-	//c = readByte();
 	cerr << f << endl;
-	serial->clear(QSerialPort::Input);
-	mainwindow->updateAttitudeState(f, 0, 0);
+	serial->clear(QSerialPort::Input);*/
 	/*serial->waitForReadyRead(50);
+	temp = 0;
+	f = 0;
+	c = readByte();
+	temp |= c << 24;
+	c = readByte();
+	temp |= c << 16;
+	c = readByte();
+	temp |= c << 8;
+	c = readByte();
+	temp |= c;
+	memcpy(&f, &temp, sizeof(float));
+	//c = readByte();
+	cerr << f << endl;*/
+	//serial->clear(QSerialPort::Input);
+	//mainwindow->updateAttitudeState(f, 0, 0);
+	double difference = 0;	// Time diff
+	serial->waitForReadyRead(50);
 	while (serial->bytesAvailable() > 0) {
 		// read in one byte
 		uint8_t c = (uint8_t) serial->read(1).at(0);
@@ -142,6 +162,10 @@ int UAVTalk::read() {
 					show_prio_info = 1;
 					uav_roll =  get_float(&msg, ATTITUDEACTUAL_OBJ_ROLL);
 					uav_pitch = get_float(&msg, ATTITUDEACTUAL_OBJ_PITCH);
+
+					// log the pitch data
+					difference = time.elapsed() / 1000.0;
+					of  << difference << ", " << uav_pitch << endl;
 					uav_heading	= get_float(&msg, ATTITUDEACTUAL_OBJ_YAW);
 					mainwindow->updateAttitudeState(uav_roll, uav_pitch, uav_heading);
 					break;
@@ -244,7 +268,7 @@ int UAVTalk::read() {
 		}
 
 		//delayMicroseconds(190);  // wait at least 1 byte
-	}*/
+	}
 
 	// check connect timeout
 	/*if (last_flighttelemetry_connect + FLIGHTTELEMETRYSTATS_CONNECT_TIMEOUT < millis()) {
