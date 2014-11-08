@@ -57,7 +57,9 @@ class MissionControl
 		MPL3115A2 altimeter;
 
 		TelemetryData telemetry;
+		uavtalk_message_t msg;
 
+		bool altimeterError;
 };
 
 #endif

@@ -11,6 +11,9 @@ class FlightControl
 	public:
 		FlightControl();
 
+		// Sets the reference ground altitude
+		void altitudeInit(const float ref);
+
 		// Altitude controller
 		// Input is the desired altitude and current telemetry data
 		void altitudeControl(const int32_t altitude_goal, 
@@ -36,11 +39,21 @@ class FlightControl
 				const TelemetryData& telemetry);
 
 	private:
-		// Controll constants
-		const static float roll_k = 1;
-		const static float pitch_Kp = 200;
+		// Reference ground altitude
+		float ground_reference;
+
+		// Control constants
+		const static float roll_Kp = 0.5;
+		const static float roll_Ki = 0;
+		const static float roll_Kd = 0;
+
+		const static float pitch_Kp = 0.5;
 		const static float pitch_Ki = 0;
 		const static float pitch_Kd = 0;
+
+		const static float alt_Kp = 0.5;
+		const static float alt_Ki = 0;
+		const static float alt_Kd = 0;
 
 		const static uint16_t pwm_max = 255;
 		const static uint16_t pwm_min = 0; 
