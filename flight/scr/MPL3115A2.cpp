@@ -3,7 +3,6 @@
 
 #include "inc/MPL3115A2.h"
 #include "inc/I2C.h"
-#include "inc/UART.h"
 
 MPL3115A2::MPL3115A2()
 {
@@ -16,11 +15,6 @@ uint8_t MPL3115A2::init(void)
 	// Starting twi
 	I2C::init();
 
-	// Test if I2C is working
-	if (I2C::start() != TW_START) 
-		return 1;
-	I2C::stop();
-
 	uint8_t whoami = readFromReg(MPL3115A2_WHOAMI);
 	if (whoami != 0xC4) return 2;
 
@@ -32,7 +26,8 @@ uint8_t MPL3115A2::init(void)
 	writeToReg(MPL3115A2_CTRL_REG1, 0b10111000);
 	writeToReg(MPL3115A2_PT_DATA_CFG, MPL3115A2_PT_DATA_CFG_TDEFE |
 		   	MPL3115A2_PT_DATA_CFG_PDEFE | MPL3115A2_PT_DATA_CFG_DREM);
-	writeToReg(0x2D, 103);	// offset altitude (North Campus)
+	writeToReg(0x2D, 0);	// offset altitude (North Campus = 270)
+
 	writeToReg(MPL3115A2_CTRL_REG1, 0b10111001);
 
 	return 0;
@@ -47,7 +42,7 @@ float MPL3115A2::getPressure(void)
 // Returns the altitude 
 float MPL3115A2::getAltitude(void)
 {
-	toggleOneShot();
+	//toggleOneShot();
 
 	uint32_t alt;
 	uint8_t counter = 0;

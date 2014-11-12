@@ -1,5 +1,6 @@
 #include <string.h>
 #include "inc/MissionControl.h"
+#include "inc/common.h"
 #include "inc/UART.h"
 
 MissionControl::MissionControl()
@@ -13,6 +14,7 @@ MissionControl::MissionControl()
 	action.waypointX = 0;	// Ignore wp for action_takeoff
 	action.waypointY = 0;
 	mission.actions[0] = action;
+	mission.action = action;
 	action.type = ACTION_HOVER;
 	action.altitude = 20;
 	action.waypointX = 0;	// Ignore wp for action_takeoff
@@ -42,16 +44,60 @@ MissionControl::MissionControl()
 	telemetry.uav_bat = 0;
 	telemetry.uav_current = 0;
 	telemetry.uav_amp = 0;
+}
 
-	if (!altimeter.init()) {
+void MissionControl::init()
+{
+	if (altimeter.init()) {
 		//TODO: Handle an error in I2C
 		altimeterError = true;
 	} else {
 		altimeterError = false;
 		// Init the altitude controller
 		// TODO: set an average
-		flightcontrol.altitudeInit(altimeter.getAltitude());
+		/*float sum = 0, temp = 0, ref = 0;
+		for (int i = 0; i < 3; ) {
+			temp = altimeter.getAltitude();
+			if (temp <= 100) continue;
+			++i;
+			sum += temp;
+		}
+		ref = sum / 3.0;
+		altimeterReference = ref;
+		flightcontrol.altitudeInit(ref);*/
 	}
+}
+
+void MissionControl::runManual()
+{
+	uavtalk.read(telemetry);
+
+	float tempalt = altimeter.getAltitude();
+	// TODO: Check this
+	if (telemetry.uav_alt > 4.4 && tempalt != -999) {
+		if (altimeterOffset == 0)
+			altimeterOffset = tempalt - telemetry.uav_alt;
+		telemetry.uav_alt = tempalt - altimeterOffset;
+	}
+
+	/*uint32_t temp; 
+	memcpy(&temp, &telemetry.uav_roll, sizeof(float));
+	UART::writeByte(temp >> 24);
+	UART::writeByte(temp >> 16);
+	UART::writeByte(temp >> 8);
+	UART::writeByte(temp);*/
+
+	// Run the roll/pitch controllers is input is close to middle
+	if (pwm_desired[3] > 2850 && pwm_desired[3] < 2950) {
+		flightcontrol.rollControl(0.00, telemetry);
+	}
+	if (pwm_desired[2] > 2850 && pwm_desired[2] < 2950) {
+		flightcontrol.pitchControl(0.00, telemetry);
+	}
+
+	// Run the yaw controller to be fixed yaw
+	if (pwm_desired[0] > 2850 && pwm_desired[0] < 2950)
+		flightcontrol.yawControl(0.00, telemetry);
 }
 
 // Returns a 0 if the current action had no errors
@@ -59,13 +105,14 @@ MissionControl::MissionControl()
 uint8_t MissionControl::runMission() 
 {
 	// If altimeter isn't working, stop
-	if (altimeterError) return 2;
+	// TODO: Go into emergency
+	//if (altimeterError) return 2;
 
 	// Get the new UAVTalk data
 	uavtalk.read(telemetry);
 
 	uint32_t temp; 
-	memcpy(&temp, &telemetry.uav_roll, sizeof(float));
+	memcpy(&temp, &telemetry.uav_alt, sizeof(float));
 	UART::writeByte(temp >> 24);
 	UART::writeByte(temp >> 16);
 	UART::writeByte(temp >> 8);
@@ -73,10 +120,16 @@ uint8_t MissionControl::runMission()
 
 	// TODO:Get the altitude reading
 	float tempalt = altimeter.getAltitude();
-	if (tempalt != -999)
-		telemetry.uav_alt = tempalt;
+	// TODO: Check this
+	if (telemetry.uav_alt > 4.4 && tempalt != -999) {
+		if (altimeterOffset == 0)
+			altimeterOffset = tempalt - telemetry.uav_alt;
+		telemetry.uav_alt = tempalt - altimeterOffset;
+	}
 
-	/*memcpy(&temp, &telemetry.uav_alt, sizeof(float));
+	/*uint32_t temp; 
+	float a = telemetry.uav_alt - ground_reference
+	memcpy(&temp, &a, sizeof(float));
 	UART::writeByte(temp >> 24);
 	UART::writeByte(temp >> 16);
 	UART::writeByte(temp >> 8);
@@ -89,13 +142,14 @@ uint8_t MissionControl::runMission()
 			//if (runSafetyChecks()) return 1;
 			
 			// Set the goal altitude and run the altitude controller
+			flightcontrol.altitudeControl(1.50, telemetry);
 
 			// Set the roll and pitch angles to be 0.00
 			flightcontrol.rollControl(0.00, telemetry);
 			flightcontrol.pitchControl(0.00, telemetry);
 
 			// Set the yaw to be stationary
-
+			flightcontrol.yawControl(0.00, telemetry);
 
 			break;
 		case ACTION_HOVER:
@@ -128,4 +182,15 @@ uint8_t MissionControl::runSafetyChecks()
 	// Communication check is done in the main.cpp
 
 	return 0;
+}
+
+void MissionControl::setAltitude(const float alt)
+{
+	telemetry.uav_alt = alt;
+}
+
+void MissionControl::setAltOffset(const float off)
+{
+	//float tempalt = altimeter.getAltitude();
+	altimeterOffset = off;
 }

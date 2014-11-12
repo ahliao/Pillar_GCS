@@ -34,7 +34,8 @@ typedef struct _Mission
 	// TODO: Add name of the mission
 	uint8_t numofActions;
 	uint8_t actionIndex;
-	MissionAction actions[];
+	MissionAction actions[5];	// TODO: Make this dynamic
+	MissionAction action;
 } Mission;
 
 class MissionControl 
@@ -42,9 +43,21 @@ class MissionControl
 	public:
 		// Constructor to init mission
 		MissionControl();
+
+		// Init function
+		void init();
 		
 		// Inteprets the current action and calls the relevant controller
 		uint8_t runMission();
+
+		// Handles basic manual flight control
+		void runManual();
+
+		// Update the altitude from the ultrasound
+		void setAltitude(const float alt);
+
+		// Set the offset from the ultrasound
+		void setAltOffset(const float off);
 
 	private:
 		// Runs safety checks before beginning a mission
@@ -60,6 +73,8 @@ class MissionControl
 		uavtalk_message_t msg;
 
 		bool altimeterError;
+		float ultrasoundAlt;
+		float altimeterOffset;
 };
 
 #endif

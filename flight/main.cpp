@@ -19,13 +19,16 @@
 // PWM Outputs on PORTC
 #define OUTPUT_PWM 0,1,2,3,7	// last pin is port d7
 
-// PWM Inputs on PORTB
+// PWM Inputs on PORTD
 #define INPUT_PWM 2,3,4,5,6
 //#define INPUT_PWM 0,1,2,3,4
 
+// Pulse input from ultrasound sensor PORTB 0
+#define ULTRASOUND_IN 0
+
 // PWM Variables for control signals
 volatile uint8_t pwm_inputs = 0;		// Indicates which inputs are counting
-volatile uint8_t pwm_outputs = 0;	// Indicates which outputs are on
+volatile int8_t pwm_outputs = 0;	// Indicates which outputs are on
 
 volatile uint16_t pwm_input_counters[PWM_CHANNELS];
 volatile uint16_t pwm_input_starts[PWM_CHANNELS];
@@ -44,6 +47,13 @@ volatile uint8_t telemetry_update = 0;
 volatile uint8_t watchdog_counter = 0;
 
 volatile uint16_t pwm_switch_counter = 0;
+
+// Ultrasound counter
+volatile uint16_t ultrasound_start = 0;
+volatile uint8_t ultrasound_count = 0;
+volatile float ultraAlt = 0;
+
+MissionControl missionControl;
 
 // Autopilot State
 typedef enum {
@@ -81,7 +91,12 @@ int main()
 	OCR1B	= 2000;		// 1ms default setting
 	TIMSK1 |= (1 << OCIE1A) | (1 << OCIE1B);
 
+	// Setup 8-bit timer for ultrasound timing
+	TCCR0B |= (1 << CS01) | (1 << CS00);	// scale at 64
+	TIMSK0 |= (1 << TOIE0);
+
 	// Setup Pin interrupts for the PWM inputs pins
+	PCMSK0 |= (1 << PCINT0);
 	PCMSK2 |= (1 << PCINT18) | (1 << PCINT19) | (1 << PCINT20) 
 			| (1 << PCINT21) | (1 << PCINT22);
 	PCICR |= (1 << PCIE2) | (1 << PCIE0);
@@ -89,11 +104,9 @@ int main()
 	// Initialize UART communication for UAVTalk
 	UART::initUART(38400, true);
 
-	// Mission Control to handle upper-level wp control
-	MissionControl missionControl;
-
 	// Initialize variables
 	// Initialize the desired PWM for testing
+	pwm_outputs = -1;
 	pwm_desired[0] = 2000;
 	pwm_desired[1] = 2000;
 	pwm_desired[2] = 2000;
@@ -105,6 +118,9 @@ int main()
 		pwm_desired_sums[i] = sum;
 	}
 
+	// Mission Control to handle upper-level wp control
+	missionControl.init();
+
 	sei();	// Global interrupts on
 
 	while(1) 
@@ -114,6 +130,13 @@ int main()
 			case AUTOPILOT_MANUAL:
 				// If switch is flipped up, switch to auto mode
 				if (pwm_switch_counter > 3300) autopilot_state = AUTOPILOT_AUTO;
+
+				// Run assisted manual control
+				if (telemetry_update >= 2) {
+					missionControl.runManual();
+					telemetry_update = 0;
+				}
+
 				break;
 			case AUTOPILOT_AUTO:
 				// If switch is flipped down, switch to manual mode
@@ -131,6 +154,11 @@ int main()
 				break;
 			case AUTOPILOT_EMERGENCY:
 				// Handle Emergency mode logic
+				pwm_desired[0] = 3000;
+				pwm_desired[1] = 1000;
+				pwm_desired[2] = 3000;
+				pwm_desired[3] = 3000;
+				pwm_desired[4] = 3000;	
 				if (pwm_switch_counter > 3300) autopilot_state = AUTOPILOT_AUTO;
 				else if (pwm_switch_counter < 2500 && pwm_switch_counter > 1000) autopilot_state = AUTOPILOT_MANUAL;
 				break;
@@ -147,16 +175,18 @@ int main()
 ISR(TIMER1_COMPA_vect)
 {
 	// Increment the 19.7ms PWM counter
-	pwm_outputs = 0x01;
-	if (pwm_desired[0] > 0)
-		PORTC |= (1 << pwm_output_pins[0]);
+	if (pwm_desired[0] > 0) {
+		pwm_outputs = 0x01;
+		//PORTC |= (1 << pwm_output_pins[0]);
+		OCR1B = 1;
+	}
 
 	// Recalculate the PWM timer goal values
 	pwm_desired_sums[0] = pwm_desired[0];
-	pwm_desired_sums[1] = pwm_desired_sums[0] + pwm_desired[1] + 12;
-	pwm_desired_sums[2] = pwm_desired_sums[1] + pwm_desired[2] + 12;
-	pwm_desired_sums[3] = pwm_desired_sums[2] + pwm_desired[3] + 12;
-	pwm_desired_sums[4] = pwm_desired_sums[3] + pwm_desired[4] + 12;
+	pwm_desired_sums[1] = pwm_desired_sums[0] + pwm_desired[1] + 8;
+	pwm_desired_sums[2] = pwm_desired_sums[1] + pwm_desired[2] + 8;
+	pwm_desired_sums[3] = pwm_desired_sums[2] + pwm_desired[3] + 8;
+	pwm_desired_sums[4] = pwm_desired_sums[3] + pwm_desired[4] + 8;
 
 	telemetry_update++;	// Update the telemetry every 20ms
 
@@ -164,7 +194,7 @@ ISR(TIMER1_COMPA_vect)
 
 	// If no inputs from receiver, increment watchdog
 	// If the watchdog_counter is past 5, assume connection lost
-	if(autopilot_state != AUTOPILOT_EMERGENCY && ++watchdog_counter > 5) {
+	if(autopilot_state != AUTOPILOT_EMERGENCY && ++watchdog_counter > 4) {
 		autopilot_state = AUTOPILOT_EMERGENCY;
 		// Shut down everything
 		pwm_switch_counter = 0;
@@ -180,23 +210,46 @@ ISR(TIMER1_COMPA_vect)
 // Handles the individual channel PWM lengths
 ISR(TIMER1_COMPB_vect)
 {
-	if (pwm_outputs > 0) {
-		if (pwm_outputs == 5)
-			PORTD &= ~(1 << pwm_output_pins[pwm_outputs-1]);
-		else
-			PORTC &= ~(1 << pwm_output_pins[pwm_outputs-1]);
-		if (pwm_outputs < PWM_CHANNELS) {
-			OCR1B = pwm_desired_sums[pwm_outputs];
-			if (pwm_desired[pwm_outputs] > 0)
+	if (pwm_outputs >= 1) {
+		if (pwm_outputs >= 6)
+			PORTD &= ~(1 << pwm_output_pins[pwm_outputs-2]);
+		else if (pwm_outputs > 1)
+			PORTC &= ~(1 << pwm_output_pins[pwm_outputs-2]);
+		if (pwm_outputs <= PWM_CHANNELS) {
+			if (pwm_desired[pwm_outputs-1] > 0)
 			{
-				if (pwm_outputs < 4)
-					PORTC |= (1 << pwm_output_pins[pwm_outputs]);
-				else PORTD |= (1 << pwm_output_pins[pwm_outputs]);
+				OCR1B = pwm_desired_sums[pwm_outputs-1];
+				if (pwm_outputs < 5)
+					PORTC |= (1 << pwm_output_pins[pwm_outputs-1]);
+				else PORTD |= (1 << pwm_output_pins[pwm_outputs-1]);
 			}
 			++pwm_outputs;
 		} else {
-			OCR1B = pwm_desired_sums[0];
+			OCR1B = pwm_desired[0];
 			pwm_outputs = 0;
+		}
+	}
+}
+
+// Read in the PORTB 0 ultrasound sensor
+ISR(PCINT0_vect)
+{
+	// Only PORTB 0 will ever change
+	if (PINB & 1) {
+		ultrasound_start = TCNT0;
+		ultrasound_count = 0;
+	} else {
+		uint32_t temp = (TCNT0 + (255 - ultrasound_start) + 255 * (ultrasound_count - 1)) * 4;
+		float alt = temp / 1000.0;	// convert the measurement
+		// Only use the ultrasound if less than 4.8 meters
+		if (alt < 4.8) {
+			missionControl.setAltitude(alt);
+			/*uint32_t serialout; 
+			memcpy(&serialout, &alt, sizeof(float));
+			UART::writeByte(serialout >> 24);
+			UART::writeByte(serialout >> 16);
+			UART::writeByte(serialout >> 8);
+			UART::writeByte(serialout);*/
 		}
 	}
 }
@@ -228,8 +281,9 @@ ISR(PCINT2_vect)
 			if (temp > 0 && temp < 4500) //pwm_desired[input_curr] = (TCNT1 - pwm_input_starts[input_curr]);
 			{
 				// Set PWM output to the delta time found
-				if (autopilot_state == AUTOPILOT_MANUAL)
+				if (autopilot_state == AUTOPILOT_MANUAL) {
 					pwm_desired[0] = (temp + pwm_desired[0]) / 2;
+				}
 			}
 		}
 	}
@@ -308,41 +362,12 @@ ISR(PCINT2_vect)
 					pwm_desired[4] = (temp + pwm_desired[4]) / 2;
 				// Always track the switch output
 				pwm_switch_counter = temp;
-			}
+			} 
 		}
 	}
-	
-	
-	// Only read inputs if in manual mode (TODO: more flexible?)
-	/*if (autopilot_state != AUTOPILOT_MANUAL) input_curr = 4;
-	for (; input_curr < PWM_CHANNELS; ++input_curr) {
-		// First see if this pin changed, else save from doing two if's
-		if (changedbits & (1 << (input_curr + 2)))
-		{
-			if (PIND & (1 << (input_curr + 2))) {
-				// Pin went up; log the time
-				pwm_input_starts[input_curr] = TCNT1;
-			} else if (!(PIND & (1 << (input_curr + 2)))) {
-				// Pin went down; store the delta
-				temp = TCNT1 - pwm_input_starts[input_curr];
-				if (TCNT1 < pwm_input_starts[input_curr]) {
-					temp = TCNT1 + OCR1A - pwm_input_starts[input_curr];
-				}
-				// Make sure the difference is a positive and in a reasonable range
-				if (temp > 0 && temp < 4500) //pwm_desired[input_curr] = (TCNT1 - pwm_input_starts[input_curr]);
-				{
-					// Set PWM output to the delta time found
-					pwm_desired[input_curr] = temp;
-					// Always track the switch output
-					if (input_curr == 4) pwm_switch_counter = temp;
-				}
+}
 
-				// Check if communication is working again by checking the switch
-				if (autopilot_state == AUTOPILOT_EMERGENCY && input_curr == 4) {
-					if (pwm_desired[4] > 3300) autopilot_state = AUTOPILOT_AUTO;
-					else if (pwm_desired[4] > 1000) autopilot_state = AUTOPILOT_MANUAL;
-				}
-			}
-		}
-	}*/
+ISR(TIMER0_OVF_vect)
+{
+	++ultrasound_count;
 }

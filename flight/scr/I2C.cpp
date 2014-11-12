@@ -20,7 +20,9 @@ uint8_t I2C::start() {
 	TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN);
 	// waiting for TWINT (interrupt) to be set, signifying
 	// the transmission is complete
-	while ((TWCR & (1 << TWINT)) == 0);
+	uint8_t count = 0;
+	while (count++ < 40 && (TWCR & (1 << TWINT)) == 0);
+	if (count >= 40) return 200;
 	// returning status register masking the clock scale bits
 	return (TWSR & 0xF8);
 }

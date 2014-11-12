@@ -63,8 +63,8 @@ int UAVTalk::read(TelemetryData& data) {
 	// Grab the data
 	// TODO: Make this not holding?
 		n = 0;
-		while (!UART::UART_newData && n++ < 50);
-		if (n >= 50) continue;
+		while (!UART::UART_newData && n++ < 30);
+		if (n >= 30) continue;
 		c = UART::UART_data;
 		UART::UART_newData = false;
 		//UART::writeByte(c);
