@@ -75,6 +75,8 @@ class MissionControl
 		bool altimeterError;
 		float ultrasoundAlt;
 		float altimeterOffset;
+
+		float yawStart;
 };
 
 #endif

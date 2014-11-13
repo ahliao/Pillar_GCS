@@ -107,11 +107,11 @@ int main()
 	// Initialize variables
 	// Initialize the desired PWM for testing
 	pwm_outputs = -1;
-	pwm_desired[0] = 2000;
+	pwm_desired[0] = 2950;
 	pwm_desired[1] = 2000;
-	pwm_desired[2] = 2000;
-	pwm_desired[3] = 2000;
-	pwm_desired[4] = 2000;
+	pwm_desired[2] = 2700;
+	pwm_desired[3] = 3000;
+	pwm_desired[4] = 3000;
 	uint16_t sum = 0;
 	for (i = 0; i < PWM_CHANNELS; ++i) {
 		sum += pwm_desired[i];
@@ -132,7 +132,7 @@ int main()
 				if (pwm_switch_counter > 3300) autopilot_state = AUTOPILOT_AUTO;
 
 				// Run assisted manual control
-				if (telemetry_update >= 2) {
+				if (telemetry_update >= 1) {
 					missionControl.runManual();
 					telemetry_update = 0;
 				}
@@ -194,7 +194,7 @@ ISR(TIMER1_COMPA_vect)
 
 	// If no inputs from receiver, increment watchdog
 	// If the watchdog_counter is past 5, assume connection lost
-	if(autopilot_state != AUTOPILOT_EMERGENCY && ++watchdog_counter > 4) {
+	if(autopilot_state != AUTOPILOT_EMERGENCY && watchdog_counter++ > 3) {
 		autopilot_state = AUTOPILOT_EMERGENCY;
 		// Shut down everything
 		pwm_switch_counter = 0;
@@ -240,9 +240,9 @@ ISR(PCINT0_vect)
 		ultrasound_count = 0;
 	} else {
 		uint32_t temp = (TCNT0 + (255 - ultrasound_start) + 255 * (ultrasound_count - 1)) * 4;
-		float alt = temp / 1000.0;	// convert the measurement
+		float alt = temp / 147 * 0.0254;//1000.0;	// convert the measurement
 		// Only use the ultrasound if less than 4.8 meters
-		if (alt < 4.8) {
+		//if (alt < 4.8) {
 			missionControl.setAltitude(alt);
 			/*uint32_t serialout; 
 			memcpy(&serialout, &alt, sizeof(float));
@@ -250,7 +250,7 @@ ISR(PCINT0_vect)
 			UART::writeByte(serialout >> 16);
 			UART::writeByte(serialout >> 8);
 			UART::writeByte(serialout);*/
-		}
+		//}
 	}
 }
 
@@ -282,7 +282,8 @@ ISR(PCINT2_vect)
 			{
 				// Set PWM output to the delta time found
 				if (autopilot_state == AUTOPILOT_MANUAL) {
-					pwm_desired[0] = (temp + pwm_desired[0]) / 2;
+					if (pwm_desired[0] < 2900 || pwm_desired[0] > 3000 || temp < 2900 || temp > 3000)
+						pwm_desired[0] = (temp + pwm_desired[0]) / 2;
 				}
 			}
 		}
@@ -321,6 +322,7 @@ ISR(PCINT2_vect)
 			{
 				// Set PWM output to the delta time found
 				if (autopilot_state == AUTOPILOT_MANUAL)
+					if (pwm_desired[2] < 2650 || pwm_desired[2] > 2750 || temp < 2650 || temp > 2750)
 					pwm_desired[2] = (temp + pwm_desired[2]) / 2;
 			}
 		}
@@ -340,7 +342,8 @@ ISR(PCINT2_vect)
 			{
 				// Set PWM output to the delta time found
 				if (autopilot_state == AUTOPILOT_MANUAL)
-					pwm_desired[3] = (temp + pwm_desired[3]) / 2;
+					if (pwm_desired[3] < 2920 || pwm_desired[3] > 3020 || temp < 2920 || temp > 3020)
+						pwm_desired[3] = (temp + pwm_desired[3]) / 2;
 			}
 		}
 	}

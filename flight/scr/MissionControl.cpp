@@ -44,6 +44,8 @@ MissionControl::MissionControl()
 	telemetry.uav_bat = 0;
 	telemetry.uav_current = 0;
 	telemetry.uav_amp = 0;
+
+	yawStart = -999;
 }
 
 void MissionControl::init()
@@ -72,32 +74,39 @@ void MissionControl::runManual()
 {
 	uavtalk.read(telemetry);
 
-	float tempalt = altimeter.getAltitude();
-	// TODO: Check this
-	if (telemetry.uav_alt > 4.4 && tempalt != -999) {
-		if (altimeterOffset == 0)
-			altimeterOffset = tempalt - telemetry.uav_alt;
-		telemetry.uav_alt = tempalt - altimeterOffset;
+	if (!altimeterError) {
+		float tempalt = altimeter.getAltitude();
+		// TODO: Check this
+		if (telemetry.uav_alt > 4.4 && tempalt != -999) {
+			if (altimeterOffset == 0)
+				altimeterOffset = tempalt - telemetry.uav_alt;
+			telemetry.uav_alt = tempalt - altimeterOffset;
+		}
 	}
 
-	/*uint32_t temp; 
-	memcpy(&temp, &telemetry.uav_roll, sizeof(float));
+	if (yawStart == -999 && telemetry.uav_heading != 0) 
+		yawStart = telemetry.uav_heading;
+
+	uint32_t input = pwm_desired[1];
+	//float yaw = telemetry.uav_heading - yawStart;
+	uint32_t temp; 
+	memcpy(&temp, &input, sizeof(float));
 	UART::writeByte(temp >> 24);
 	UART::writeByte(temp >> 16);
 	UART::writeByte(temp >> 8);
-	UART::writeByte(temp);*/
+	UART::writeByte(temp);
 
 	// Run the roll/pitch controllers is input is close to middle
-	if (pwm_desired[3] > 2850 && pwm_desired[3] < 2950) {
+	if (pwm_desired[3] >= 2920 && pwm_desired[3] <= 3020) {
 		flightcontrol.rollControl(0.00, telemetry);
 	}
-	if (pwm_desired[2] > 2850 && pwm_desired[2] < 2950) {
+	if (pwm_desired[2] >= 2650 && pwm_desired[2] <= 2750) {
 		flightcontrol.pitchControl(0.00, telemetry);
 	}
 
 	// Run the yaw controller to be fixed yaw
-	if (pwm_desired[0] > 2850 && pwm_desired[0] < 2950)
-		flightcontrol.yawControl(0.00, telemetry);
+	if (yawStart != -999 && pwm_desired[0] >= 2900 && pwm_desired[0] <= 3000)
+		flightcontrol.yawControl(yawStart, telemetry);
 }
 
 // Returns a 0 if the current action had no errors
@@ -105,31 +114,43 @@ void MissionControl::runManual()
 uint8_t MissionControl::runMission() 
 {
 	// If altimeter isn't working, stop
-	// TODO: Go into emergency
-	//if (altimeterError) return 2;
 
 	// Get the new UAVTalk data
 	uavtalk.read(telemetry);
 
-	uint32_t temp; 
+	if (yawStart == -999) yawStart = telemetry.uav_heading;
+
+	/*uint32_t temp; 
 	memcpy(&temp, &telemetry.uav_alt, sizeof(float));
 	UART::writeByte(temp >> 24);
 	UART::writeByte(temp >> 16);
 	UART::writeByte(temp >> 8);
-	UART::writeByte(temp);
+	UART::writeByte(temp);*/
 
 	// TODO:Get the altitude reading
-	float tempalt = altimeter.getAltitude();
-	// TODO: Check this
-	if (telemetry.uav_alt > 4.4 && tempalt != -999) {
-		if (altimeterOffset == 0)
-			altimeterOffset = tempalt - telemetry.uav_alt;
-		telemetry.uav_alt = tempalt - altimeterOffset;
+	if (!altimeterError) {
+		float tempalt = altimeter.getAltitude();
+		// TODO: Check this
+		if (telemetry.uav_alt > 4.4 && tempalt != -999) {
+			if (altimeterOffset == 0)
+				altimeterOffset = tempalt - telemetry.uav_alt;
+			telemetry.uav_alt = tempalt - altimeterOffset;
+		}
 	}
 
 	/*uint32_t temp; 
 	float a = telemetry.uav_alt - ground_reference
 	memcpy(&temp, &a, sizeof(float));
+	UART::writeByte(temp >> 24);
+	UART::writeByte(temp >> 16);
+	UART::writeByte(temp >> 8);
+	UART::writeByte(temp);*/
+
+	/*uint32_t input = pwm_desired[1];
+	//float input = telemetry.uav_alt;
+	//float yaw = telemetry.uav_heading - yawStart;
+	uint32_t temp; 
+	memcpy(&temp, &input, sizeof(float));
 	UART::writeByte(temp >> 24);
 	UART::writeByte(temp >> 16);
 	UART::writeByte(temp >> 8);
@@ -142,14 +163,15 @@ uint8_t MissionControl::runMission()
 			//if (runSafetyChecks()) return 1;
 			
 			// Set the goal altitude and run the altitude controller
-			flightcontrol.altitudeControl(1.50, telemetry);
+			flightcontrol.altitudeControl(0.50, telemetry);
 
 			// Set the roll and pitch angles to be 0.00
 			flightcontrol.rollControl(0.00, telemetry);
 			flightcontrol.pitchControl(0.00, telemetry);
 
 			// Set the yaw to be stationary
-			flightcontrol.yawControl(0.00, telemetry);
+			if (yawStart != -999)
+				flightcontrol.yawControl(yawStart, telemetry);
 
 			break;
 		case ACTION_HOVER:
