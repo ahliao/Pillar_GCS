@@ -51,7 +51,7 @@ class FlightControl
 		const static float pitch_Ki = 0;
 		const static float pitch_Kd = 0;
 
-		const static float yaw_Kp = 0.1;
+		const static float yaw_Kp = 0.05;
 		const static float yaw_Ki = 0;
 		const static float yaw_Kd = 0;
 

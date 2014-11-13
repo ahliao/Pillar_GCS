@@ -27,13 +27,14 @@ void FlightControl::altitudeControl(const float altitude_goal,
 	// Error is between -360.0 to +360.0
 	// but usually between -90.0 to +90.0
 	float error = altitude_goal - telemetry.uav_alt;
-	float a = input;//telemetry.uav_alt - ground_reference;
+	/*float a = input;//telemetry.uav_alt - ground_reference;
 	uint32_t temp; 
 	memcpy(&temp, &a, sizeof(float));
 	UART::writeByte(temp >> 24);
 	UART::writeByte(temp >> 16);
 	UART::writeByte(temp >> 8);
-	UART::writeByte(temp);
+	UART::writeByte(temp);*/
+
 	// Scale the error by K and adjust the input
 	float delta = error * alt_Kp;
 	// Limit the delta change
@@ -46,7 +47,7 @@ void FlightControl::altitudeControl(const float altitude_goal,
 	// Limit the input 
 	if (input < 2600) input = 2600;
 	else if (input > 3050) input = 3050;
-	else if (error > -0.1 && error < 0.1) input = 2900;
+	//else if (error > -0.1 && error < 0.1) input = 2900;
 
 	// Load new desired PWM into channel 4
 	pwm_desired[1] = input;
