@@ -240,7 +240,7 @@ ISR(PCINT0_vect)
 		ultrasound_count = 0;
 	} else {
 		uint32_t temp = (TCNT0 + (255 - ultrasound_start) + 255 * (ultrasound_count - 1)) * 4;
-		float alt = temp / 147 * 0.0254;//1000.0;	// convert the measurement
+		float alt = temp / 1000.0;//temp / 147 * 0.0254;//1000.0;	// convert the measurement
 		// Only use the ultrasound if less than 4.8 meters
 		//if (alt < 4.8) {
 			missionControl.setAltitude(alt);

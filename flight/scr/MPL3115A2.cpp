@@ -15,6 +15,7 @@ uint8_t MPL3115A2::init(void)
 	// Starting twi
 	I2C::init();
 
+	// TODO: This doesn't actually work
 	if(I2C::start() == 200) return 1;
 	I2C::stop();
 

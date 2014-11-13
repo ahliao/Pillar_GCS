@@ -45,7 +45,7 @@ void FlightControl::altitudeControl(const float altitude_goal,
 
 	// Limit the input 
 	if (input < 2600) input = 2600;
-	else if (input > 3100) input = 3100;
+	else if (input > 3050) input = 3050;
 	else if (error > -0.1 && error < 0.1) input = 2900;
 
 	// Load new desired PWM into channel 4
@@ -69,7 +69,7 @@ void FlightControl::pitchControl(const float pitch_goal,
 
 	// Limit the input roll
 	if (input < 2500) input = 2500;
-	else if (input > 3500) input = 3500;
+	else if (input > 2900) input = 2900;
 
 	// Load new desired PWM into channel 4
 	pwm_desired[2] = input;
@@ -91,8 +91,8 @@ void FlightControl::rollControl(const float roll_goal,
 	input = input + error * roll_Kp;
 
 	// Limit the input roll
-	if (input < 2500) input = 2500;
-	else if (input > 3500) input = 3500;
+	if (input < 2770) input = 2770;
+	else if (input > 3170) input = 3170;
 
 	// Load new desired PWM into channel 4
 	pwm_desired[3] = input;
@@ -114,8 +114,8 @@ void FlightControl::yawControl(const float yaw_goal,
 	input = input + error * yaw_Kp;
 
 	// Limit the input roll
-	if (input < 2500) input = 2500;
-	else if (input > 3500) input = 3500;
+	if (input < 2800) input = 2800;
+	else if (input > 3100) input = 3100;
 
 	// Load new desired PWM into channel 4
 	pwm_desired[0] = input;
