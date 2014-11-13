@@ -6,25 +6,30 @@
 MissionControl::MissionControl()
 {
 	// TODO: load in mission from EEPROM or PI
-	mission.numofActions = 3;
+	mission.numofActions = 4;
 	mission.actionIndex = 0;
 	MissionAction action;
-	action.type = ACTION_TAKEOFF;
-	action.altitude = 20;
+	action.type = ACTION_INIT;
+	action.altitude = 0;
 	action.waypointX = 0;	// Ignore wp for action_takeoff
 	action.waypointY = 0;
 	mission.actions[0] = action;
-	mission.action = action;
-	action.type = ACTION_HOVER;
-	action.altitude = 20;
+	action.type = ACTION_TAKEOFF;
+	action.altitude = 1;
 	action.waypointX = 0;	// Ignore wp for action_takeoff
 	action.waypointY = 0;
 	mission.actions[1] = action;
+	mission.action = action;
+	action.type = ACTION_HOVER;
+	action.altitude = 2;
+	action.waypointX = 0;	// Ignore wp for action_takeoff
+	action.waypointY = 0;
+	mission.actions[2] = action;
 	action.type = ACTION_LAND;
 	action.altitude = 0;
 	action.waypointX = 0;	// Ignore wp for action_takeoff
 	action.waypointY = 0;
-	mission.actions[2] = action;
+	mission.actions[3] = action;
 
 	telemetry.uav_rssi = 0;
 	telemetry.uav_linkquality = 0;
@@ -45,7 +50,9 @@ MissionControl::MissionControl()
 	telemetry.uav_current = 0;
 	telemetry.uav_amp = 0;
 
+	// TODO: standarize coding style
 	yawStart = -999;
+	hover_start = -999;
 }
 
 void MissionControl::init()
@@ -146,17 +153,22 @@ uint8_t MissionControl::runMission()
 	UART::writeByte(temp >> 8);
 	UART::writeByte(temp);*/
 
-	/*uint32_t input = pwm_desired[1];
-	//float input = telemetry.uav_alt;
-	//float yaw = telemetry.uav_heading - yawStart;
-	uint32_t temp; 
-	memcpy(&temp, &input, sizeof(float));
-	UART::writeByte(temp >> 24);
-	UART::writeByte(temp >> 16);
-	UART::writeByte(temp >> 8);
-	UART::writeByte(temp);*/
-
 	switch(mission.actions[mission.actionIndex].type) {
+		case ACTION_INIT:
+			// TODO: Run safety checks
+
+			// Set high thrust for stable takeoff
+			pwm_desired[1] = 3000;
+
+			// Set the yaw to be stationary
+			// TODO: Better organization of this
+			if (yawStart != -999)
+				flightcontrol.yawControl(yawStart, telemetry);
+
+			// Go to the takeoff (next step)
+			++mission.actionIndex;
+
+			break;
 		case ACTION_TAKEOFF:
 			// Run the safety checks
 			// If problems occurred, return a 1
@@ -175,7 +187,25 @@ uint8_t MissionControl::runMission()
 
 			break;
 		case ACTION_HOVER:
-			// Set the goal altitude as 
+			// keep track of when hover_start is called
+			if (hover_start < 0) hover_start = TCNT0;
+
+			// If the hover has lasted long enough, to go next action
+			// Multiply by four because each timer count is 4us
+			hover_time = (TCNT0 + (255 - hover_start) + 
+				(hover_overflow_counter - 1) * 255) * 0.004f;
+			// TODO: Set the time from the action
+			if (hover_time >= 5) {
+				hover_start = -999;
+				++mission.actionIndex;
+			}
+
+			// TODO: Set the goal altitude as the action alt
+			flightcontrol.altitudeControl(0.50, telemetry);
+
+			// Set the roll and pitch angles to be 0.00
+			flightcontrol.rollControl(0.00, telemetry);
+			flightcontrol.pitchControl(0.00, telemetry);
 
 			break;
 		case ACTION_WP:

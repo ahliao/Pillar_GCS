@@ -53,6 +53,9 @@ volatile uint16_t ultrasound_start = 0;
 volatile uint8_t ultrasound_count = 0;
 volatile float ultraAlt = 0;
 
+// Hover counter (also used in landing)
+volatile uint16_t hover_overflow_counter = 0;
+
 MissionControl missionControl;
 
 // Autopilot State
@@ -373,4 +376,5 @@ ISR(PCINT2_vect)
 ISR(TIMER0_OVF_vect)
 {
 	++ultrasound_count;
+	++hover_overflow_counter;
 }

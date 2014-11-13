@@ -14,6 +14,7 @@
 
 typedef enum 
 {
+	ACTION_INIT,
 	ACTION_TAKEOFF,
 	ACTION_LAND,
 	ACTION_HOVER,
@@ -26,6 +27,7 @@ typedef struct _MissionAction
 	uint16_t altitude;
 	int16_t waypointX;
 	int16_t waypointY;
+	float hoverTime;
 } MissionAction;
 
 // Struct holding the mission's actions
@@ -77,6 +79,9 @@ class MissionControl
 		float altimeterOffset;
 
 		float yawStart;
+
+		int16_t hover_start;
+		float hover_time;
 };
 
 #endif
