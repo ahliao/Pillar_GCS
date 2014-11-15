@@ -53,6 +53,7 @@ MissionControl::MissionControl()
 	// TODO: standarize coding style
 	yawStart = -999;
 	hover_start = -999;
+	landing_dest = -9999;
 }
 
 void MissionControl::init()
@@ -93,15 +94,6 @@ void MissionControl::runManual()
 
 	if (yawStart == -999 && telemetry.uav_heading != 0) 
 		yawStart = telemetry.uav_heading;
-
-	uint32_t input = pwm_desired[1];
-	//float yaw = telemetry.uav_heading - yawStart;
-	uint32_t temp; 
-	memcpy(&temp, &input, sizeof(float));
-	UART::writeByte(temp >> 24);
-	UART::writeByte(temp >> 16);
-	UART::writeByte(temp >> 8);
-	UART::writeByte(temp);
 
 	// Run the roll/pitch controllers is input is close to middle
 	if (pwm_desired[3] >= 2920 && pwm_desired[3] <= 3020) {
@@ -158,7 +150,7 @@ uint8_t MissionControl::runMission()
 			// TODO: Run safety checks
 
 			// Set high thrust for stable takeoff
-			pwm_desired[1] = 3000;
+			pwm_desired[1] = 2890;
 
 			// Set the yaw to be stationary
 			// TODO: Better organization of this
@@ -175,7 +167,7 @@ uint8_t MissionControl::runMission()
 			//if (runSafetyChecks()) return 1;
 			
 			// Set the goal altitude and run the altitude controller
-			flightcontrol.altitudeControl(0.50, telemetry);
+			flightcontrol.altitudeControl(0.40, telemetry);
 
 			// Set the roll and pitch angles to be 0.00
 			flightcontrol.rollControl(0.00, telemetry);
@@ -212,7 +204,33 @@ uint8_t MissionControl::runMission()
 
 			break;
 		case ACTION_LAND:
+			if (landing_dest == -9999) landing_dest = telemetry.uav_alt;
 
+			// keep track of when hover_start is called
+			if (telemetry.uav_alt - landing_dest < 0.1 && 
+					telemetry.uav_alt - landing_dest > -0.1) {
+				if (hover_start < 0) hover_start = TCNT0;
+
+				// If the hover has lasted long enough, to go next action
+				// Multiply by four because each timer count is 4us
+				hover_time = (TCNT0 + (255 - hover_start) + 
+						(hover_overflow_counter) * 255) * 0.004f;
+				// TODO: Set the time from the action
+				if (hover_time >= 5) {
+					hover_start = -999;
+					//++mission.actionIndex;
+
+					if (landing_dest > 0.3) landing_dest = telemetry.uav_alt - 0.3;
+					else landing_dest = -9999;
+				}
+			}
+
+			// TODO: Set the goal altitude as the action alt
+			flightcontrol.altitudeControl(landing_dest, telemetry);
+
+			// Set the roll and pitch angles to be 0.00
+			flightcontrol.rollControl(0.00, telemetry);
+			flightcontrol.pitchControl(0.00, telemetry);
 			break;
 		default:
 			// Invalid type

@@ -55,6 +55,7 @@ volatile float ultraAlt = 0;
 
 // Hover counter (also used in landing)
 volatile uint16_t hover_overflow_counter = 0;
+volatile uint16_t alt_overflow_counter = 0;
 
 MissionControl missionControl;
 
@@ -145,8 +146,11 @@ int main()
 				// If switch is flipped down, switch to manual mode
 				if (pwm_switch_counter < 2500) autopilot_state = AUTOPILOT_MANUAL;
 
-				// Run MissionControl
-				missionControl.runMission();
+				// Run MissionControlA
+				if (telemetry_update >= 1) {
+					missionControl.runMission();
+					telemetry_update = 0;
+				}
 				// TEST:
 				/*pwm_desired[0] = 3000;
 				pwm_desired[1] = 3000;
@@ -243,7 +247,7 @@ ISR(PCINT0_vect)
 		ultrasound_count = 0;
 	} else {
 		uint32_t temp = (TCNT0 + (255 - ultrasound_start) + 255 * (ultrasound_count - 1)) * 4;
-		float alt = temp / 1000.0;//temp / 147 * 0.0254;//1000.0;	// convert the measurement
+		float alt = temp / 1000.0;//147 * 0.0254;//1000.0;	// convert the measurement
 		// Only use the ultrasound if less than 4.8 meters
 		//if (alt < 4.8) {
 			missionControl.setAltitude(alt);
@@ -377,4 +381,5 @@ ISR(TIMER0_OVF_vect)
 {
 	++ultrasound_count;
 	++hover_overflow_counter;
+	++alt_overflow_counter;
 }

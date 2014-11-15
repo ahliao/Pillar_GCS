@@ -82,6 +82,8 @@ class MissionControl
 
 		int16_t hover_start;
 		float hover_time;
+
+		float landing_dest;
 };
 
 #endif

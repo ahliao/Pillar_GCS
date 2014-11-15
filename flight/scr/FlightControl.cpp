@@ -8,7 +8,7 @@
 
 FlightControl::FlightControl()
 {
-
+	last_alt = -999;
 }
 
 void FlightControl::altitudeInit(const float ref)
@@ -21,36 +21,52 @@ void FlightControl::altitudeInit(const float ref)
 void FlightControl::altitudeControl(const float altitude_goal, 
 		const TelemetryData& telemetry)
 {
+	if (last_alt == -999) last_alt = telemetry.uav_alt;
+	float time_elapsed = (TCNT0 + (255 - last_time) + 255 * 
+			(alt_overflow_counter)) * 4e-6;
+	float Kd = alt_Kd / time_elapsed;
+
 	// Take in the current output (feedback)
 	uint16_t input = pwm_desired[1];
 
 	// Error is between -360.0 to +360.0
 	// but usually between -90.0 to +90.0
 	float error = altitude_goal - telemetry.uav_alt;
-	/*float a = input;//telemetry.uav_alt - ground_reference;
-	uint32_t temp; 
-	memcpy(&temp, &a, sizeof(float));
-	UART::writeByte(temp >> 24);
-	UART::writeByte(temp >> 16);
-	UART::writeByte(temp >> 8);
-	UART::writeByte(temp);*/
+	float D_term = telemetry.uav_alt - last_alt;
 
 	// Scale the error by K and adjust the input
-	float delta = error * alt_Kp;
+	float delta = error * alt_Kp - Kd * D_term;
 	// Limit the delta change
-	if (delta > 0 && delta < 2) delta = 2;
-	else if (delta < 0 && delta > -1) delta = -1;
+	if (delta > 0.1 && delta < 2) delta = 2;
+	else if (delta < -0.4 && delta > -1) delta = -1;
 	else if (delta > 5) delta = 5;
-	else if (delta < -5) delta = -5;
+	else if (delta < -1) delta = -1;
 	input = input + delta;
 
 	// Limit the input 
-	if (input < 2600) input = 2600;
-	else if (input > 3050) input = 3050;
-	//else if (error > -0.1 && error < 0.1) input = 2900;
+	if (error < -0.2) input = 2930;
+	else if (input < 2870) input = 2870;
+	else if (input > 2980) input = 2980;
+	// Tested 2920: Fell down
+	//else if (error > -0.2 && error < 0) input = 2930;
+	// Tested 2930: N/A
+	//else if (error < 0.2 && error > 0) input = 2935;
+
+	//float blah = telemetry.uav_alt;
+	uint32_t blah = input;
+	uint32_t temp; 
+	memcpy(&temp, &blah, sizeof(float));
+	UART::writeByte(temp >> 24);
+	UART::writeByte(temp >> 16);
+	UART::writeByte(temp >> 8);
+	UART::writeByte(temp);
 
 	// Load new desired PWM into channel 4
 	pwm_desired[1] = input;
+
+	last_alt = telemetry.uav_alt;
+	last_time = TCNT0;
+	alt_overflow_counter = 0;
 }
 
 // Pitch controller
@@ -116,7 +132,7 @@ void FlightControl::yawControl(const float yaw_goal,
 
 	// Limit the input roll
 	if (input < 2800) input = 2800;
-	else if (input > 3100) input = 3100;
+	else if (input > 3000) input = 3000;
 
 	// Load new desired PWM into channel 4
 	pwm_desired[0] = input;
