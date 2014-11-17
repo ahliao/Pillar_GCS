@@ -66,7 +66,7 @@ class FlightControl
 		uint16_t last_time;
 		float time_elapsed;
 
-		//float I_term = 0;
+		float delta, Kd, Ki, error;
 		float last_alt;
 		float last_roll;
 		float last_pitch;

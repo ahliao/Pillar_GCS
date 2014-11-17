@@ -72,6 +72,7 @@ void MissionControl::init()
 		altimeterReference = ref;
 		flightcontrol.altitudeInit(ref);*/
 	}
+	flightcontrol.init();
 
 	// TODO: standarize coding style
 	yawStart = -999;

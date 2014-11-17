@@ -36,24 +36,24 @@ void FlightControl::altitudeControl(const float altitude_goal,
 {
 	if (last_alt == -999) last_alt = telemetry.uav_alt;
 	if (alt_I_term == -999) alt_I_term = 0;
-	float Kd = alt_Kd / time_elapsed;
-	float Ki = pitch * time_elapsed;
+	Kd = alt_Kd / time_elapsed;
+	Ki = alt_Ki * time_elapsed;
 
 	// Take in the current output (feedback)
 	uint16_t input = pwm_desired[1];
 
 	// Error is between -360.0 to +360.0
 	// but usually between -90.0 to +90.0
-	float error = altitude_goal - telemetry.uav_alt;
+	error = altitude_goal - telemetry.uav_alt;
 	D_term = telemetry.uav_alt - last_alt;
-	I_term += Ki * error;
+	alt_I_term += Ki * error;
 
 	// Limit for the I_term
-	if (I_term > 5) I_term = 5;
-	else if (I_term < -2) I_term = -2;
+	if (alt_I_term > 5) alt_I_term = 5;
+	else if (alt_I_term < -2) alt_I_term = -2;
 
 	// Scale the error by K and adjust the input
-	float delta = error * alt_Kp - Kd * D_term + I_term;
+	delta = error * alt_Kp - Kd * D_term + alt_I_term;
 	// Limit the delta change
 	if (delta > 0.1 && delta < 2) delta = 1;
 	else if (delta < -0.2 && delta > -1) delta = 0;
@@ -86,14 +86,14 @@ void FlightControl::pitchControl(const float pitch_goal,
 		const TelemetryData& telemetry)
 {
 	if (last_pitch == -999) last_pitch = telemetry.uav_pitch;
-	float Kd = pitch_Kd / time_elapsed;
+	Kd = pitch_Kd / time_elapsed;
 
 	// Take in the current output (feedback)
 	uint16_t input = pwm_desired[2];
 
 	// Error is between -360.0 to +360.0
 	// but usually between -90.0 to +90.0
-	float error = telemetry.uav_pitch - pitch_goal;
+	error = telemetry.uav_pitch - pitch_goal;
 	D_term = telemetry.uav_pitch - last_pitch;
 
 	// Scale the error by K and adjust the input
@@ -113,14 +113,14 @@ void FlightControl::rollControl(const float roll_goal,
 		const TelemetryData& telemetry)
 {
 	if (last_roll == -999) last_roll = telemetry.uav_roll;
-	float Kd = roll_Kd / time_elapsed;
+	Kd = roll_Kd / time_elapsed;
 
 	// Take in the current output (feedback)
 	uint16_t input = pwm_desired[3];
 
 	// Error is between -360.0 to +360.0
 	// but usually between -90.0 to +90.0
-	float error = telemetry.uav_roll - roll_goal;
+	error = telemetry.uav_roll - roll_goal;
 	D_term = telemetry.uav_roll - last_roll;
 
 	// Scale the error by K and adjust the input
@@ -141,18 +141,18 @@ void FlightControl::yawControl(const float yaw_goal,
 {
 	// TODO: Replace this with universal timer?
 	if (last_yaw == -999) last_yaw = telemetry.uav_heading;
-	float Kd = yaw_Kd / time_elapsed;
+	Kd = yaw_Kd / time_elapsed;
 
 	// Take in the current output (feedback)
 	uint16_t input = pwm_desired[0];
 
 	// Error is between -360.0 to +360.0
 	// but usually between -90.0 to +90.0
-	float error = telemetry.uav_heading - yaw_goal;
+	error = telemetry.uav_heading - yaw_goal;
 	D_term = telemetry.uav_heading - last_yaw;
 
 	// Scale the error by K and adjust the input
-	float delta = error * yaw_Kp - Kd * D_term;
+	delta = error * yaw_Kp - Kd * D_term;
 	if (delta > 1) delta = 1;
 	else if (delta < -1) delta = -1;
 	input = input + delta;
