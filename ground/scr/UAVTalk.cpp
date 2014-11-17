@@ -107,10 +107,11 @@ int UAVTalk::read() {
 	memcpy(&f, &temp, sizeof(float));
 	cerr << f << endl;
 	serial->clear(QSerialPort::Input);*/
-	/*serial->waitForReadyRead(50);
-	temp = 0;
-	f = 0;
-	c = readByte();
+	//serial->waitForReadyRead(50);
+	double difference = 0;	// Time diff
+	uint32_t temp = 0;
+	float f = 0;
+	uint8_t c = readByte();
 	temp |= c << 24;
 	c = readByte();
 	temp |= c << 16;
@@ -120,10 +121,12 @@ int UAVTalk::read() {
 	temp |= c;
 	memcpy(&f, &temp, sizeof(float));
 	//c = readByte();
-	cerr << f << endl;*/
-	//serial->clear(QSerialPort::Input);
+	cerr << f << endl;
+	//difference = time.elapsed() / 1000.0;
+	//of  << difference << ", " << f << endl;
+	serial->clear(QSerialPort::Input);
 	//mainwindow->updateAttitudeState(f, 0, 0);
-	double difference = 0;	// Time diff
+	/*double difference = 0;	// Time diff
 	serial->waitForReadyRead(50);
 	while (serial->bytesAvailable() > 0) {
 		// read in one byte
@@ -268,7 +271,7 @@ int UAVTalk::read() {
 		}
 
 		//delayMicroseconds(190);  // wait at least 1 byte
-	}
+	}*/
 
 	// check connect timeout
 	/*if (last_flighttelemetry_connect + FLIGHTTELEMETRYSTATS_CONNECT_TIMEOUT < millis()) {

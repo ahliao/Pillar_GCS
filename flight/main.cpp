@@ -56,6 +56,8 @@ volatile float ultraAlt = 0;
 // Hover counter (also used in landing)
 volatile uint16_t hover_overflow_counter = 0;
 volatile uint16_t alt_overflow_counter = 0;
+volatile uint16_t yaw_overflow_counter = 0;
+volatile uint16_t control_overflow_counter = 0;
 
 MissionControl missionControl;
 
@@ -328,8 +330,8 @@ ISR(PCINT2_vect)
 			if (temp > 0 && temp < 4500) //pwm_desired[input_curr] = (TCNT1 - pwm_input_starts[input_curr]);
 			{
 				// Set PWM output to the delta time found
-				if (autopilot_state == AUTOPILOT_MANUAL)
-					if (pwm_desired[2] < 2650 || pwm_desired[2] > 2750 || temp < 2650 || temp > 2750)
+				//if (autopilot_state == AUTOPILOT_MANUAL)
+					if (pwm_desired[2] < 2650 || pwm_desired[2] > 2800 || temp < 2650 || temp > 2800)
 					pwm_desired[2] = (temp + pwm_desired[2]) / 2;
 			}
 		}
@@ -348,7 +350,7 @@ ISR(PCINT2_vect)
 			if (temp > 0 && temp < 4500) //pwm_desired[input_curr] = (TCNT1 - pwm_input_starts[input_curr]);
 			{
 				// Set PWM output to the delta time found
-				if (autopilot_state == AUTOPILOT_MANUAL)
+				//if (autopilot_state == AUTOPILOT_MANUAL)
 					if (pwm_desired[3] < 2920 || pwm_desired[3] > 3020 || temp < 2920 || temp > 3020)
 						pwm_desired[3] = (temp + pwm_desired[3]) / 2;
 			}
@@ -382,4 +384,6 @@ ISR(TIMER0_OVF_vect)
 	++ultrasound_count;
 	++hover_overflow_counter;
 	++alt_overflow_counter;
+	++yaw_overflow_counter;
+	++control_overflow_counter;
 }
