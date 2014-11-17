@@ -12,7 +12,7 @@ class FlightControl
 		FlightControl();
 
 		// Sets the reference ground altitude
-		void altitudeInit(const float ref);
+		void init();
 
 		void calcTime();
 
@@ -72,6 +72,7 @@ class FlightControl
 		float last_pitch;
 		float last_yaw;
 		float D_term;
+		float alt_I_term;
 };
 
 #endif

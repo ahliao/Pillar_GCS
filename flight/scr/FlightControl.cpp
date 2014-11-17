@@ -14,9 +14,13 @@ FlightControl::FlightControl()
 	last_yaw = -999;
 }
 
-void FlightControl::altitudeInit(const float ref)
+void FlightControl::init()
 {
-	//ground_reference = ref;
+	last_alt = -999;
+	last_roll = -999;
+	last_pitch = -999;
+	last_yaw = -999;
+	alt_I_term = -999;
 }
 
 void FlightControl::calcTime()
@@ -31,7 +35,9 @@ void FlightControl::altitudeControl(const float altitude_goal,
 		const TelemetryData& telemetry)
 {
 	if (last_alt == -999) last_alt = telemetry.uav_alt;
+	if (alt_I_term == -999) alt_I_term = 0;
 	float Kd = alt_Kd / time_elapsed;
+	float Ki = pitch * time_elapsed;
 
 	// Take in the current output (feedback)
 	uint16_t input = pwm_desired[1];
@@ -40,9 +46,14 @@ void FlightControl::altitudeControl(const float altitude_goal,
 	// but usually between -90.0 to +90.0
 	float error = altitude_goal - telemetry.uav_alt;
 	D_term = telemetry.uav_alt - last_alt;
+	I_term += Ki * error;
+
+	// Limit for the I_term
+	if (I_term > 5) I_term = 5;
+	else if (I_term < -2) I_term = -2;
 
 	// Scale the error by K and adjust the input
-	float delta = error * alt_Kp - Kd * D_term;
+	float delta = error * alt_Kp - Kd * D_term + I_term;
 	// Limit the delta change
 	if (delta > 0.1 && delta < 2) delta = 1;
 	else if (delta < -0.2 && delta > -1) delta = 0;
@@ -54,11 +65,7 @@ void FlightControl::altitudeControl(const float altitude_goal,
 	if (error < -0.10 && input > 2931) input = input - 1;
 	if (error < 0.10 && error > -0.10 && input < 2914) input = 2914;
 	if (input < 2720) input = 2720;
-	else if (input > 2980) input = 2980;
-	// Tested 2920: Fell down
-	//else if (error > -0.2 && error < 0) input = 2930;
-	// Tested 2930: N/A
-	//else if (error < 0.2 && error > 0) input = 2935;
+	else if (input > 2990) input = 2990;
 
 	//float blah = telemetry.uav_alt;
 	float blah = input;
