@@ -21,13 +21,14 @@ typedef enum
 	ACTION_WP
 } MissionActionType;
 
+// Struct for an action
 typedef struct _MissionAction
 {
-	MissionActionType type;
-	uint16_t altitude;
-	int16_t waypointX;
-	int16_t waypointY;
-	float hoverTime;
+	MissionActionType type;	// Type of action (landing, hover, etc)
+	float altitude;		// Altitude action takes place
+	double waypointLong;	// Longitude of position
+	double waypointLat;		// Latitude of position
+	float time;				// Variable time (specific to action type)
 } MissionAction;
 
 // Struct holding the mission's actions

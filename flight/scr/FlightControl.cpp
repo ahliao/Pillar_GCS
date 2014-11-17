@@ -64,7 +64,7 @@ void FlightControl::altitudeControl(const float altitude_goal,
 	// Limit the input 
 	if (error < -0.10 && input > 2931) input = input - 1;
 	if (error < 0.10 && error > -0.10 && input < 2914) input = 2914;
-	if (input < 2720) input = 2720;
+	if (input < 2700) input = 2700;
 	else if (input > 2990) input = 2990;
 
 	//float blah = telemetry.uav_alt;

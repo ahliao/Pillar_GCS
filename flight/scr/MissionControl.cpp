@@ -11,24 +11,28 @@ MissionControl::MissionControl()
 	MissionAction action;
 	action.type = ACTION_INIT;
 	action.altitude = 0;
-	action.waypointX = 0;	// Ignore wp for action_takeoff
-	action.waypointY = 0;
+	action.waypointLong = 0;	
+	action.waypointLat = 0;
+	action.time = 0;
 	mission.actions[0] = action;
 	action.type = ACTION_TAKEOFF;
-	action.altitude = 1;
-	action.waypointX = 0;	// Ignore wp for action_takeoff
-	action.waypointY = 0;
+	action.altitude = 0.5;
+	action.waypointLong = 0;	// Ignore wp for action_takeoff
+	action.waypointLat = 0;
+	action.time = 0;
 	mission.actions[1] = action;
 	mission.action = action;
 	action.type = ACTION_HOVER;
-	action.altitude = 2;
-	action.waypointX = 0;	// Ignore wp for action_takeoff
-	action.waypointY = 0;
+	action.altitude = 0.5;
+	action.waypointLong = 0;	
+	action.waypointLat = 0;
+	action.time = 5;
 	mission.actions[2] = action;
 	action.type = ACTION_LAND;
 	action.altitude = 0;
-	action.waypointX = 0;	// Ignore wp for action_takeoff
-	action.waypointY = 0;
+	action.waypointLong = 0;	
+	action.waypointLat = 0;
+	action.time = 0;
 	mission.actions[3] = action;
 
 	telemetry.uav_rssi = 0;
@@ -145,7 +149,9 @@ uint8_t MissionControl::runMission()
 	// Handle precontrol calculations
 	flightcontrol.calcTime();
 
-	switch(mission.actions[mission.actionIndex].type) {
+	MissionAction action = mission.actions[mission.actionIndex];
+
+	switch(action.type) {
 		case ACTION_INIT:
 			// TODO: Run safety checks
 
@@ -162,7 +168,7 @@ uint8_t MissionControl::runMission()
 			//if (runSafetyChecks()) return 1;
 			
 			// Set the goal altitude and run the altitude controller
-			flightcontrol.altitudeControl(0.80, telemetry);
+			flightcontrol.altitudeControl(action.altitude, telemetry);
 
 			// Set the roll and pitch angles to be 0.00
 			flightcontrol.rollControl(0.00, telemetry);
@@ -171,26 +177,31 @@ uint8_t MissionControl::runMission()
 			if (yawStart != -999)
 				flightcontrol.yawControl(yawStart, telemetry);
 
-			if (telemetry.uav_alt > 0.7 && telemetry.uav_alt < 0.9)
+			if (telemetry.uav_alt > action.altitude - 0.1 
+					&& telemetry.uav_alt < action.altitude + 0.1)
 				++mission.actionIndex;
 
 			break;
 		case ACTION_HOVER:
 			// keep track of when hover_start is called
-			if (hover_start < 0) hover_start = TCNT0;
+			if (hover_start < 0) {
+				hover_start = TCNT0;
+				hover_overflow_counter = 0;
+			}
 
 			// If the hover has lasted long enough, to go next action
 			// Multiply by four because each timer count is 4us
 			hover_time = (TCNT0 + (255 - hover_start) + 
 				(hover_overflow_counter - 1) * 255) * 0.004f;
 			// TODO: Set the time from the action
-			if (hover_time >= 5) {
+			if (hover_time >= action.time) {
 				hover_start = -999;
+				hover_overflow_counter = 0;
 				++mission.actionIndex;
 			}
 
 			// TODO: Set the goal altitude as the action alt
-			flightcontrol.altitudeControl(0.80, telemetry);
+			flightcontrol.altitudeControl(action.altitude, telemetry);
 
 			// Set the roll and pitch angles to be 0.00
 			flightcontrol.rollControl(0.00, telemetry);
@@ -206,15 +217,19 @@ uint8_t MissionControl::runMission()
 			// keep track of when hover_start is called
 			if (telemetry.uav_alt - landing_dest < 0.1 && 
 					telemetry.uav_alt - landing_dest > -0.1) {
-				if (hover_start < 0) hover_start = TCNT0;
+				if (hover_start < 0) {
+					hover_start = TCNT0;
+					hover_overflow_counter = 0;
+				}
 
 				// If the hover has lasted long enough, to go next action
 				// Multiply by four because each timer count is 4us
 				hover_time = (TCNT0 + (255 - hover_start) + 
 						(hover_overflow_counter) * 255) * 0.004f;
 				// TODO: Set the time from the action
-				if (hover_time >= 2) {
+				if (hover_time >= 3) {
 					hover_start = -999;
+					hover_overflow_counter = 0;
 					//++mission.actionIndex;
 
 					if (landing_dest > 0.1) landing_dest = telemetry.uav_alt - 0.3;
@@ -261,6 +276,5 @@ void MissionControl::setAltitude(const float alt)
 
 void MissionControl::setAltOffset(const float off)
 {
-	//float tempalt = altimeter.getAltitude();
 	altimeterOffset = off;
 }
