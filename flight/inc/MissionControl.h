@@ -18,7 +18,8 @@ typedef enum
 	ACTION_TAKEOFF,
 	ACTION_LAND,
 	ACTION_HOVER,
-	ACTION_WP
+	ACTION_WP,
+	ACTION_END
 } MissionActionType;
 
 // Struct for an action
@@ -62,7 +63,11 @@ class MissionControl
 		// Set the offset from the ultrasound
 		void setAltOffset(const float off);
 
+		void updateTelemetry();
+
 	private:
+		void controlWaypoint(double errorLat, double errorLong);
+
 		// Runs safety checks before beginning a mission
 		uint8_t runSafetyChecks();
 
@@ -85,6 +90,11 @@ class MissionControl
 		float hover_time;
 
 		float landing_dest;
+
+		const static float long_Kp = 1;
+		const static float lat_Kp = 1;
+		double errorLong;
+		double errorLat;
 };
 
 #endif

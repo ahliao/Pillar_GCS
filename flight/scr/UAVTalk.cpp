@@ -59,15 +59,14 @@ int UAVTalk::read(TelemetryData& data) {
 	uint8_t c;
 	// TODO: Figure out a better way to do this?
 	// Run for a max of 999 times, then timeout
-	for (; i < 2500; ++i) {
+	for (; i < 2000; ++i) {
 	// Grab the data
 	// TODO: Make this not holding?
 		n = 0;
-		while (!UART::UART_newData && n++ < 100);
-		if (n >= 100) continue;
+		while (!UART::UART_newData && n++ < 50);
+		if (n >= 50) continue;
 		c = UART::UART_data;
 		UART::UART_newData = false;
-		//UART::writeByte(c);
 	
 		// parse data to msg
 		if (parse_char(c, &msg)) {
@@ -121,13 +120,46 @@ int UAVTalk::read(TelemetryData& data) {
 				case GPSPOSITION_OBJID:
 				case GPSPOSITION_OBJID_001:
 				case GPSPOSITIONSENSOR_OBJID:
-					data.uav_lat = get_int32(&msg, GPSPOSITION_OBJ_LAT);
-					data.uav_lon = get_int32(&msg, GPSPOSITION_OBJ_LON);
+					// Put lat and lon into array to get the median
+					lat_array[gps_index++] = (double)(get_int32(&msg, GPSPOSITION_OBJ_LAT)/1.0e7);
+					lon_array[gps_index++] = (double)(get_int32(&msg, GPSPOSITION_OBJ_LON)/1.0e7);
+					if (gps_index > 4) gps_index = 0;
+
+					// Find the median of the array
+					// Sort array 
+					for (i = 0; i < 5; ++i) sorted_array[i] = lat_array[i];
+					for (i = 0; i < 5; ++i) {
+						for (j = i + 1; j < 5; ++j) {
+							if (sorted_array[i] > sorted_array[j]) {
+								temp = sorted_array[j];
+								sorted_array[j] = sorted_array[i];
+								sorted_array[i] = temp;
+							}
+						}
+					}
+					data.uav_lat = sorted_array[2];
+
+					// Sort array 
+					for (i = 0; i < 5; ++i) sorted_array[i] = lat_array[i];
+					for (i = 0; i < 5; ++i) {
+						for (j = i + 1; j < 5; ++j) {
+							if (sorted_array[i] > sorted_array[j]) {
+								temp = sorted_array[j];
+								sorted_array[j] = sorted_array[i];
+								sorted_array[i] = temp;
+							}
+						}
+					}
+					data.uav_lon = sorted_array[2];
+
+					//data.uav_lat = (double)(get_int32(&msg, GPSPOSITION_OBJ_LAT)/1.0e7);
+					//data.uav_lon = (double)(get_int32(&msg, GPSPOSITION_OBJ_LON)/1.0e7);
+
 					data.uav_satellites_visible	= (uint8_t) get_int8(&msg, GPSPOSITION_OBJ_SATELLITES);
 					data.uav_fix_type = (uint8_t) get_int8(&msg, GPSPOSITION_OBJ_STATUS);
 					data.uav_gpsheading = (int16_t) get_float(&msg, GPSPOSITION_OBJ_HEADING);
 #ifndef BARO_ALT
-					//data.uav_alt = (int32_t) round(get_float(&msg, GPSPOSITION_OBJ_ALTITUDE) * 100.0f);
+					//data.uav_alt = get_float(&msg, GPSPOSITION_OBJ_ALTITUDE);
 #endif
 					data.uav_groundspeed = (uint16_t)get_float(&msg, GPSPOSITION_OBJ_GROUNDSPEED);
 					break;

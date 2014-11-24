@@ -6,7 +6,7 @@
 MissionControl::MissionControl()
 {
 	// TODO: load in mission from EEPROM or PI
-	mission.numofActions = 4;
+	mission.numofActions = 5;
 	mission.actionIndex = 0;
 	MissionAction action;
 	action.type = ACTION_INIT;
@@ -26,14 +26,28 @@ MissionControl::MissionControl()
 	action.altitude = 0.5;
 	action.waypointLong = 0;	
 	action.waypointLat = 0;
-	action.time = 5;
+	action.time = 20;
 	mission.actions[2] = action;
+
+	/*action.type = ACTION_WP;
+	action.altitude = 0.5;
+	action.waypointLong = -83.716129;
+	action.waypointLat = 42.292491;
+	action.time = 5;
+	mission.actions[2] = action;*/
+
 	action.type = ACTION_LAND;
 	action.altitude = 0;
 	action.waypointLong = 0;	
 	action.waypointLat = 0;
 	action.time = 0;
 	mission.actions[3] = action;
+	action.type = ACTION_END;
+	action.altitude = 0;
+	action.waypointLong = 0;	
+	action.waypointLat = 0;
+	action.time = 0;
+	mission.actions[4] = action;
 
 	telemetry.uav_rssi = 0;
 	telemetry.uav_linkquality = 0;
@@ -86,7 +100,7 @@ void MissionControl::init()
 
 void MissionControl::runManual()
 {
-	uavtalk.read(telemetry);
+	//uavtalk.read(telemetry);
 
 	if (!altimeterError) {
 		float tempalt = altimeter.getAltitude();
@@ -105,15 +119,15 @@ void MissionControl::runManual()
 	flightcontrol.calcTime();
 
 	// Run the roll/pitch controllers is input is close to middle
-	if (pwm_desired[3] >= 2920 && pwm_desired[3] <= 3020) {
+	if (pwm_desired[3] >= 2860 && pwm_desired[3] <= 2960) {
 		flightcontrol.rollControl(0.00, telemetry);
 	}
-	if (pwm_desired[2] >= 2650 && pwm_desired[2] <= 2800) {
+	if (pwm_desired[2] >= 2602 && pwm_desired[2] <= 2702) {
 		flightcontrol.pitchControl(0.00, telemetry);
 	}
 
 	// Run the yaw controller to be fixed yaw
-	if (yawStart != -999 && pwm_desired[0] >= 2900 && pwm_desired[0] <= 3000)
+	if (yawStart != -999 && pwm_desired[0] >= 2858 && pwm_desired[0] <= 2948)
 		flightcontrol.yawControl(yawStart, telemetry);
 }
 
@@ -124,12 +138,13 @@ uint8_t MissionControl::runMission()
 	// If altimeter isn't working, stop
 
 	// Get the new UAVTalk data
-	uavtalk.read(telemetry);
+	//uavtalk.read(telemetry);
 
 	if (yawStart == -999) yawStart = telemetry.uav_heading;
 
-	/*uint32_t temp; 
-	memcpy(&temp, &telemetry.uav_alt, sizeof(float));
+	/*float lat = telemetry.uav_lat;
+	uint32_t temp; 
+	memcpy(&temp, &lat, sizeof(float));
 	UART::writeByte(temp >> 24);
 	UART::writeByte(temp >> 16);
 	UART::writeByte(temp >> 8);
@@ -177,8 +192,8 @@ uint8_t MissionControl::runMission()
 			if (yawStart != -999)
 				flightcontrol.yawControl(yawStart, telemetry);
 
-			if (telemetry.uav_alt > action.altitude - 0.1 
-					&& telemetry.uav_alt < action.altitude + 0.1)
+			if (telemetry.uav_alt > action.altitude - 0.07 
+					&& telemetry.uav_alt < action.altitude + 0.07)
 				++mission.actionIndex;
 
 			break;
@@ -191,8 +206,8 @@ uint8_t MissionControl::runMission()
 
 			// If the hover has lasted long enough, to go next action
 			// Multiply by four because each timer count is 4us
-			hover_time = (TCNT0 + (255 - hover_start) + 
-				(hover_overflow_counter - 1) * 255) * 0.004f;
+			hover_time = (uint16_t)(TCNT0 + (255 - hover_start)) * 0.000004f + 
+				hover_overflow_counter * 0.00102f;
 			// TODO: Set the time from the action
 			if (hover_time >= action.time) {
 				hover_start = -999;
@@ -209,6 +224,36 @@ uint8_t MissionControl::runMission()
 
 			break;
 		case ACTION_WP:
+			if (telemetry.uav_satellites_visible > 4) {
+				errorLong = action.waypointLong - telemetry.uav_lon;
+				errorLat = action.waypointLat - telemetry.uav_lat;
+				// Call temp waypoint controller
+				controlWaypoint(action.waypointLong, action.waypointLat);
+			} else {
+				flightcontrol.rollControl(0.00, telemetry);
+				flightcontrol.pitchControl(0.00, telemetry);
+			}
+			// Maintain altitude
+			flightcontrol.altitudeControl(action.altitude, telemetry);
+
+			// If near the area start timer
+			if (errorLat < 0.01 && errorLat > -0.01 && 
+					errorLong < 0.01 && errorLong > -0.01) {
+				if (hover_start < 0) {
+					hover_start = TCNT0;
+					hover_overflow_counter = 0;
+				}
+				// If the hover has lasted long enough, to go next action
+				// Multiply by four because each timer count is 4us
+				hover_time = (uint16_t)(TCNT0 + (255 - hover_start)) 
+					* 0.000004f + hover_overflow_counter * 0.00102f;
+				// TODO: Set the time from the action
+				if (hover_time >= action.time) {
+					hover_start = -999;
+					hover_overflow_counter = 0;
+					++mission.actionIndex;
+				}
+			}
 
 			break;
 		case ACTION_LAND:
@@ -224,25 +269,30 @@ uint8_t MissionControl::runMission()
 
 				// If the hover has lasted long enough, to go next action
 				// Multiply by four because each timer count is 4us
-				hover_time = (TCNT0 + (255 - hover_start) + 
-						(hover_overflow_counter) * 255) * 0.004f;
+				hover_time = (uint16_t)(TCNT0 + (255 - hover_start)) * 0.000004f + 
+					hover_overflow_counter * 0.00102f;
 				// TODO: Set the time from the action
 				if (hover_time >= 3) {
 					hover_start = -999;
 					hover_overflow_counter = 0;
-					//++mission.actionIndex;
 
-					if (landing_dest > 0.1) landing_dest = telemetry.uav_alt - 0.3;
+					if (landing_dest > 0.0) landing_dest = telemetry.uav_alt - 0.2;
 					else landing_dest = -9999;
+					//++mission.actionIndex;
 				}
 			}
 
 			// TODO: Set the goal altitude as the action alt
-			flightcontrol.altitudeControl(landing_dest, telemetry);
+			if (landing_dest > 0.0)
+				flightcontrol.altitudeControl(landing_dest, telemetry);
+			else pwm_desired[1] = 2450;
 
 			// Set the roll and pitch angles to be 0.00
 			flightcontrol.rollControl(0.00, telemetry);
 			flightcontrol.pitchControl(0.00, telemetry);
+			break;
+		case ACTION_END:
+			pwm_desired[1] = 2000;
 			break;
 		default:
 			// Invalid type
@@ -253,6 +303,29 @@ uint8_t MissionControl::runMission()
 	flightcontrol.postCleanup(telemetry);
 
 	return 0;
+}
+
+void MissionControl::controlWaypoint(double errorLat, double errorLong)
+{
+	// Temp P controller
+	// Assumes we are facing north
+	float roll_delta = long_Kp * errorLong;
+	float roll_angle = 0.00;
+	if (roll_delta > 0.001) roll_angle = 0.05;
+	else if (roll_delta < 0.001) roll_angle = -0.05;
+
+	float pitch_delta = lat_Kp * errorLat;
+	float pitch_angle = 0.00;
+	if (pitch_delta > 0.001) pitch_angle = 0.05;
+	else if (pitch_delta < 0.001) pitch_angle = -0.05;
+
+	flightcontrol.rollControl(roll_angle, telemetry);
+	flightcontrol.pitchControl(pitch_angle, telemetry);
+}
+
+void MissionControl::updateTelemetry()
+{
+	uavtalk.read(telemetry);
 }
 
 // Returns 0 if no failures were found else returns 1
@@ -271,7 +344,9 @@ uint8_t MissionControl::runSafetyChecks()
 
 void MissionControl::setAltitude(const float alt)
 {
-	telemetry.uav_alt = alt;
+	// Don't accept crazy differences
+	if (telemetry.uav_alt - alt < 0.8 && telemetry.uav_alt - alt > -0.8)
+		telemetry.uav_alt = alt;
 }
 
 void MissionControl::setAltOffset(const float off)

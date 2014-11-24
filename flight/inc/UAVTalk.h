@@ -238,6 +238,16 @@ class UAVTalk
 		uint8_t gcstelemetrystats_obj_len;
 		uint8_t gcstelemetrystats_obj_status;
 		uint8_t flighttelemetrystats_obj_status;
+
+		double lat_array[5];
+		double lon_array[5];
+		double sorted_array[5];
+		uint8_t gps_index;
+
+		uint8_t i,j;
+		double temp;
+
+		//uavtalk_message_t msg;
 };
 
 #endif

@@ -55,8 +55,6 @@ volatile float ultraAlt = 0;
 
 // Hover counter (also used in landing)
 volatile uint16_t hover_overflow_counter = 0;
-volatile uint16_t alt_overflow_counter = 0;
-volatile uint16_t yaw_overflow_counter = 0;
 volatile uint16_t control_overflow_counter = 0;
 
 MissionControl missionControl;
@@ -131,6 +129,8 @@ int main()
 
 	while(1) 
 	{	
+		missionControl.updateTelemetry();
+
 		// Check for a change in the switch (channel 5)
 		switch (autopilot_state) {
 			case AUTOPILOT_MANUAL:
@@ -149,7 +149,7 @@ int main()
 				if (pwm_switch_counter < 2500) autopilot_state = AUTOPILOT_MANUAL;
 
 				// Run MissionControlA
-				if (telemetry_update >= 1) {
+				if (telemetry_update >= 4) {
 					missionControl.runMission();
 					telemetry_update = 0;
 				}
@@ -191,7 +191,7 @@ ISR(TIMER1_COMPA_vect)
 	}
 
 	// Recalculate the PWM timer goal values
-	pwm_desired_sums[0] = pwm_desired[0];
+	pwm_desired_sums[0] = pwm_desired[0] + 22;
 	pwm_desired_sums[1] = pwm_desired_sums[0] + pwm_desired[1] + 8;
 	pwm_desired_sums[2] = pwm_desired_sums[1] + pwm_desired[2] + 8;
 	pwm_desired_sums[3] = pwm_desired_sums[2] + pwm_desired[3] + 8;
@@ -291,7 +291,7 @@ ISR(PCINT2_vect)
 			{
 				// Set PWM output to the delta time found
 				if (autopilot_state == AUTOPILOT_MANUAL) {
-					if (pwm_desired[0] < 2900 || pwm_desired[0] > 3000 || temp < 2900 || temp > 3000)
+					if (pwm_desired[0] < 2858 || pwm_desired[0] > 2948 || temp < 2858 || temp > 2948)
 						pwm_desired[0] = (temp + pwm_desired[0]) / 2;
 				}
 			}
@@ -331,7 +331,7 @@ ISR(PCINT2_vect)
 			{
 				// Set PWM output to the delta time found
 				//if (autopilot_state == AUTOPILOT_MANUAL)
-					if (pwm_desired[2] < 2650 || pwm_desired[2] > 2800 || temp < 2650 || temp > 2800)
+					if (pwm_desired[2] < 2602 || pwm_desired[2] > 2702 || temp < 2602 || temp > 2702)
 					pwm_desired[2] = (temp + pwm_desired[2]) / 2;
 			}
 		}
@@ -351,7 +351,7 @@ ISR(PCINT2_vect)
 			{
 				// Set PWM output to the delta time found
 				//if (autopilot_state == AUTOPILOT_MANUAL)
-					if (pwm_desired[3] < 2920 || pwm_desired[3] > 3020 || temp < 2920 || temp > 3020)
+					if (pwm_desired[3] < 2860 || pwm_desired[3] > 2960 || temp < 2860 || temp > 2960)
 						pwm_desired[3] = (temp + pwm_desired[3]) / 2;
 			}
 		}
@@ -383,7 +383,5 @@ ISR(TIMER0_OVF_vect)
 {
 	++ultrasound_count;
 	++hover_overflow_counter;
-	++alt_overflow_counter;
-	++yaw_overflow_counter;
 	++control_overflow_counter;
 }

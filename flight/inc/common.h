@@ -6,8 +6,6 @@
 #define PWM_CHANNELS 5
 volatile extern uint16_t pwm_desired[PWM_CHANNELS];
 volatile extern uint16_t hover_overflow_counter;
-volatile extern uint16_t alt_overflow_counter;
-volatile extern uint16_t yaw_overflow_counter;
 volatile extern uint16_t control_overflow_counter;
 
 #endif
