@@ -16,14 +16,14 @@ MissionControl::MissionControl()
 	action.time = 0;
 	mission.actions[0] = action;
 	action.type = ACTION_TAKEOFF;
-	action.altitude = 0.5;
+	action.altitude = 0.7;
 	action.waypointLong = 0;	// Ignore wp for action_takeoff
 	action.waypointLat = 0;
 	action.time = 0;
 	mission.actions[1] = action;
 	mission.action = action;
 	action.type = ACTION_HOVER;
-	action.altitude = 0.5;
+	action.altitude = 0.7;
 	action.waypointLong = 0;	
 	action.waypointLat = 0;
 	action.time = 20;
@@ -31,10 +31,17 @@ MissionControl::MissionControl()
 
 	/*action.type = ACTION_WP;
 	action.altitude = 0.5;
-	action.waypointLong = -83.716129;
-	action.waypointLat = 42.292491;
+	action.waypointLong = -83.716084;
+	action.waypointLat = 42.292475;
 	action.time = 5;
 	mission.actions[2] = action;*/
+
+	/*action.type = ACTION_WP;
+	action.altitude = 0.5;
+	action.waypointLong = -83.715925;
+	action.waypointLat = 42.292497;
+	action.time = 5;
+	mission.actions[3] = action;*/
 
 	action.type = ACTION_LAND;
 	action.altitude = 0;
@@ -96,6 +103,8 @@ void MissionControl::init()
 	yawStart = -999;
 	hover_start = -999;
 	landing_dest = -9999;
+	latdist = -9999;
+	lngdist = -9999;
 }
 
 void MissionControl::runManual()
@@ -171,7 +180,7 @@ uint8_t MissionControl::runMission()
 			// TODO: Run safety checks
 
 			// Set high thrust for stable takeoff
-			pwm_desired[1] = 2900;
+			pwm_desired[1] = 2640;
 
 			// Go to the takeoff (next step)
 			++mission.actionIndex;
@@ -199,7 +208,7 @@ uint8_t MissionControl::runMission()
 			break;
 		case ACTION_HOVER:
 			// keep track of when hover_start is called
-			if (hover_start < 0) {
+			/*if (hover_start < 0) {
 				hover_start = TCNT0;
 				hover_overflow_counter = 0;
 			}
@@ -213,7 +222,7 @@ uint8_t MissionControl::runMission()
 				hover_start = -999;
 				hover_overflow_counter = 0;
 				++mission.actionIndex;
-			}
+			}*/
 
 			// TODO: Set the goal altitude as the action alt
 			flightcontrol.altitudeControl(action.altitude, telemetry);
@@ -224,12 +233,19 @@ uint8_t MissionControl::runMission()
 
 			break;
 		case ACTION_WP:
+			// If there are enough satellites
 			if (telemetry.uav_satellites_visible > 4) {
-				errorLong = action.waypointLong - telemetry.uav_lon;
-				errorLat = action.waypointLat - telemetry.uav_lat;
 				// Call temp waypoint controller
-				controlWaypoint(action.waypointLong, action.waypointLat);
+				/*errorLong = action.waypointLong - telemetry.uav_lon;
+				errorLat = action.waypointLat - telemetry.uav_lat;
+				controlWaypoint(action.waypointLong, action.waypointLat);*/
+
+				// Call latitude controller
+				moveLat(action);
+				// Call longitude controller
+				moveLng(action);
 			} else {
+				// Stay there
 				flightcontrol.rollControl(0.00, telemetry);
 				flightcontrol.pitchControl(0.00, telemetry);
 			}
@@ -237,20 +253,23 @@ uint8_t MissionControl::runMission()
 			flightcontrol.altitudeControl(action.altitude, telemetry);
 
 			// If near the area start timer
-			if (errorLat < 0.01 && errorLat > -0.01 && 
-					errorLong < 0.01 && errorLong > -0.01) {
+			if (errorLat < 0.0001 && errorLat > -0.0001 && 
+					errorLng < 0.0001 && errorLng > -0.0001) {
 				if (hover_start < 0) {
 					hover_start = TCNT0;
 					hover_overflow_counter = 0;
 				}
+
 				// If the hover has lasted long enough, to go next action
 				// Multiply by four because each timer count is 4us
 				hover_time = (uint16_t)(TCNT0 + (255 - hover_start)) 
 					* 0.000004f + hover_overflow_counter * 0.00102f;
-				// TODO: Set the time from the action
+
 				if (hover_time >= action.time) {
 					hover_start = -999;
 					hover_overflow_counter = 0;
+					latdist = -9999;
+					lngdist = -9999;
 					++mission.actionIndex;
 				}
 			}
@@ -285,14 +304,14 @@ uint8_t MissionControl::runMission()
 			// TODO: Set the goal altitude as the action alt
 			if (landing_dest > 0.0)
 				flightcontrol.altitudeControl(landing_dest, telemetry);
-			else pwm_desired[1] = 2450;
+			else pwm_desired[1] = 2250;
 
 			// Set the roll and pitch angles to be 0.00
 			flightcontrol.rollControl(0.00, telemetry);
 			flightcontrol.pitchControl(0.00, telemetry);
 			break;
 		case ACTION_END:
-			pwm_desired[1] = 2000;
+			pwm_desired[1] = 2100;
 			break;
 		default:
 			// Invalid type
@@ -305,11 +324,12 @@ uint8_t MissionControl::runMission()
 	return 0;
 }
 
+// Temp P controller
+// TODO: REMOVE ME
 void MissionControl::controlWaypoint(double errorLat, double errorLong)
 {
-	// Temp P controller
 	// Assumes we are facing north
-	float roll_delta = long_Kp * errorLong;
+	/*float roll_delta = long_Kp * errorLong;
 	float roll_angle = 0.00;
 	if (roll_delta > 0.001) roll_angle = 0.05;
 	else if (roll_delta < 0.001) roll_angle = -0.05;
@@ -320,9 +340,10 @@ void MissionControl::controlWaypoint(double errorLat, double errorLong)
 	else if (pitch_delta < 0.001) pitch_angle = -0.05;
 
 	flightcontrol.rollControl(roll_angle, telemetry);
-	flightcontrol.pitchControl(pitch_angle, telemetry);
+	flightcontrol.pitchControl(pitch_angle, telemetry);*/
 }
 
+// Read in new telemetry data from UAVTalk
 void MissionControl::updateTelemetry()
 {
 	uavtalk.read(telemetry);
@@ -332,8 +353,6 @@ void MissionControl::updateTelemetry()
 // TODO: Write any errors to a log file or something
 uint8_t MissionControl::runSafetyChecks() 
 {
-	// Check if the battery is over 15%
-	if (telemetry.uav_bat < 15) return 1;
 	// Check if number of satellites is at least 7
 	if (telemetry.uav_satellites_visible < 7) return 1;
 
@@ -342,6 +361,7 @@ uint8_t MissionControl::runSafetyChecks()
 	return 0;
 }
 
+// Called by the ultrasound interrupt to update altitude
 void MissionControl::setAltitude(const float alt)
 {
 	// Don't accept crazy differences
@@ -349,7 +369,105 @@ void MissionControl::setAltitude(const float alt)
 		telemetry.uav_alt = alt;
 }
 
+// Called by barometer to set the altitude offset
 void MissionControl::setAltOffset(const float off)
 {
 	altimeterOffset = off;
+}
+
+// ------- Waypoint Functions ------ //
+void MissionControl::moveLat(const MissionAction& action) {
+	// If this is a starting point, save it
+	// Or if the distance is too unreasonable, resave it
+	if (latdist == -9999 || latdist > 0.01 || latdist < -0.01) 
+		latdist = telemetry.uav_lat - action.waypointLat;
+
+	// Current error in latitude
+	errorLat = action.waypointLat - telemetry.uav_lat;
+
+	// error normalized to the starting error
+	float fracLat = errorLat / latdist;
+	float pitchAngle = 0;	// Angle to set the pitch for north/south
+
+	// Set absolute value of the fraction (error keeps the direction)
+	if (fracLat < 0) fracLat = fracLat * (-1);
+
+	// Adjust the pitch angle depending on how far the current
+	// position is to the desired goal
+	if (fracLat <= 0.3 && fracLat > 0.1) {
+		// adjust pitch angle to slow down (-3%)
+		// TODO: check direction
+		if (errorLat > 0) pitchAngle = -5.0;
+		else if (errorLat < 0) pitchAngle = 5.0;
+	}
+	else if (fracLat <= 0.5 && fracLat > 0.3) {
+
+		// adjust throttle to 3 degrees to destination (5%)
+		if (errorLat > 0) pitchAngle = 3.0;
+		else if (errorLat < 0) pitchAngle = -3.0;
+	}
+	else if (fracLat < 0.9 && fracLat >0.5) {
+
+		// adjust throttle to 5 degrees to destination
+		if (errorLat > 0) pitchAngle = 5.0;
+		else if (errorLat < 0) pitchAngle = -5.0;
+	}
+	else if (fracLat >= 0.9) {
+
+		// adjust throttle to 7 degrees to destination
+		if (errorLat > 0) pitchAngle = 7.0;
+		else if (errorLat < 0) pitchAngle = -7.0;
+	}
+	else if (fracLat < 0.1) {
+		pitchAngle = 0.0;
+	}
+	flightcontrol.pitchControl(pitchAngle, telemetry);
+}
+
+void MissionControl::moveLng(const MissionAction& action)  {
+	// If this is a starting point, save it
+	// Or if unreasonable distance
+	if (lngdist == -9999 || lngdist > 0.01 || lngdist < -0.01) 
+		lngdist = telemetry.uav_lon - action.waypointLong;
+
+	// Current error in latitude
+	errorLng = action.waypointLong - telemetry.uav_lon;
+
+	// error normalized to the starting error
+	float fracLng = errorLng / lngdist;
+	float rollAngle = 0;	// Angle to set the pitch for north/south
+
+	// Set absolute value of the fraction (error keeps the direction)
+	if (fracLng < 0) fracLng = fracLng * (-1);
+
+	// Adjust the pitch angle depending on how far the current
+	// position is to the desired goal
+	if (fracLng <= 0.3 && fracLng > 0.1) {
+		// adjust pitch angle to slow down (-3%)
+		// TODO: check direction
+		if (errorLng > 0) rollAngle = -5.0;
+		else if (errorLng < 0) rollAngle = 5.0;
+	}
+	else if (fracLng <= 0.5 && fracLng > 0.3) {
+
+		// adjust throttle to 3 degrees to destination (5%)
+		if (errorLng > 0) rollAngle = 3.0;
+		else if (errorLng < 0) rollAngle = -3.0;
+	}
+	else if (fracLng < 0.9 && fracLng >0.5) {
+
+		// adjust throttle to 5 degrees to destination
+		if (errorLng > 0) rollAngle = 5.0;
+		else if (errorLng < 0) rollAngle = -5.0;
+	}
+	else if (fracLng >= 0.9) {
+
+		// adjust throttle to 7 degrees to destination
+		if (errorLng > 0) rollAngle = 7.0;
+		else if (errorLng < 0) rollAngle = -7.0;
+	}
+	else if (fracLng < 0.1) {
+		rollAngle = 0.0;
+	}
+	flightcontrol.rollControl(rollAngle, telemetry);
 }

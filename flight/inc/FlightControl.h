@@ -59,10 +59,10 @@ class FlightControl
 		const static float yaw_Ki = 0;
 		const static float yaw_Kd = 0.0000;
 
-		const static float alt_Kp_rise = 0.70;
+		const static float alt_Kp_rise = 1.20;
 		const static float alt_Kp_fall = 0.420;
-		const static float alt_Ki = 1.0;
-		const static float alt_Kd = 4.70;
+		const static float alt_Ki = 0.0;
+		const static float alt_Kd = 4.30;
 
 		uint16_t last_time;
 		float time_elapsed;

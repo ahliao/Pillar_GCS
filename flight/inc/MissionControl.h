@@ -68,6 +68,9 @@ class MissionControl
 	private:
 		void controlWaypoint(double errorLat, double errorLong);
 
+		void moveLat(const MissionAction& action);
+		void moveLng(const MissionAction& action);
+
 		// Runs safety checks before beginning a mission
 		uint8_t runSafetyChecks();
 
@@ -91,10 +94,14 @@ class MissionControl
 
 		float landing_dest;
 
-		const static float long_Kp = 1;
+		/*const static float long_Kp = 1;
 		const static float lat_Kp = 1;
 		double errorLong;
-		double errorLat;
+		double errorLat;*/
+
+		float startLon, startLat;
+		float latdist, lngdist;
+		float errorLat, errorLng;
 };
 
 #endif

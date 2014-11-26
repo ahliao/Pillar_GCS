@@ -157,11 +157,11 @@ int UAVTalk::read(TelemetryData& data) {
 
 					data.uav_satellites_visible	= (uint8_t) get_int8(&msg, GPSPOSITION_OBJ_SATELLITES);
 					data.uav_fix_type = (uint8_t) get_int8(&msg, GPSPOSITION_OBJ_STATUS);
-					data.uav_gpsheading = (int16_t) get_float(&msg, GPSPOSITION_OBJ_HEADING);
+					data.uav_gpsheading = (float) get_float(&msg, GPSPOSITION_OBJ_HEADING);
 #ifndef BARO_ALT
 					//data.uav_alt = get_float(&msg, GPSPOSITION_OBJ_ALTITUDE);
 #endif
-					data.uav_groundspeed = (uint16_t)get_float(&msg, GPSPOSITION_OBJ_GROUNDSPEED);
+					data.uav_groundspeed = (float)get_float(&msg, GPSPOSITION_OBJ_GROUNDSPEED);
 					break;
 
 				case FLIGHTBATTERYSTATE_OBJID:
@@ -202,7 +202,7 @@ int UAVTalk::state(void) {
 }
 
 inline int8_t UAVTalk::get_int8(uavtalk_message_t *msg, int pos) {
-	return msg->Data[pos];
+	return msg->Data[pos+2];
 }
 
 // return an int16 from the ms

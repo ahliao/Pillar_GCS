@@ -16,8 +16,8 @@ typedef struct _TelemeteryData
 	// GPS data
 	uint8_t uav_satellites_visible;
 	uint8_t uav_fix_type;
-	int16_t uav_gpsheading;
-	uint16_t uav_groundspeed;
+	float uav_gpsheading;
+	float uav_groundspeed;
 
 	// Battery and power data
 	uint16_t uav_bat;

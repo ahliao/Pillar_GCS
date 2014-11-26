@@ -149,7 +149,7 @@ int main()
 				if (pwm_switch_counter < 2500) autopilot_state = AUTOPILOT_MANUAL;
 
 				// Run MissionControlA
-				if (telemetry_update >= 4) {
+				if (telemetry_update >= 3) {
 					missionControl.runMission();
 					telemetry_update = 0;
 				}

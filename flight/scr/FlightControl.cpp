@@ -47,45 +47,54 @@ void FlightControl::altitudeControl(const float altitude_goal,
 
 	Ki = alt_Ki * time_elapsed;
 
+	if (error < 0.05 && error > -0.05 && input < 2900 
+			&& input > 2740 && hover_ref == 0)
+		hover_ref = input;
+
 	D_term = telemetry.uav_alt - last_alt;
 	//if (D_term < 0) Kd *= 2.5;
 	alt_I_term += Ki * error;
 
 	// Limit for the I_term
 	if (error > -0.05 && error < 0.05) alt_I_term = 0;
-	else if (alt_I_term > 1) alt_I_term = 1;
+	else if (alt_I_term > 2) alt_I_term = 2;
 	else if (alt_I_term < -1) alt_I_term = -1;
 
 	//if (hover_ref == 0 && error < 0.05 && error > -0.05) hover_ref = input;
 	//if (D_term < -0.00 && error > 0) D_term *= 1.5;
-	if (D_term < 0.009 && D_term > -0.004) D_term = 0;
+	if (D_term < 0.009 && D_term > -0.002) D_term = 0;
 
-	if (error > -0.05 && D_term < 0)  {
-		D_term *= 3.0;
+	if (error > -0.025 && D_term < 0)  {
+		D_term *= 4.3;
 		alt_I_term = 0;
 	}
 	delta = error * alt_Kp_rise - Kd * D_term + alt_I_term;
 	/*if (error > 0 && D_term < 0 && delta < 0) {
 		delta = 2;
 	}*/
-	if (error < 0.05 && delta > 0.05) delta = -1;
-
-	if (delta > 9 && D_term < 0 && error > -0.03) delta = 9;
-	else if (delta > 3) delta = 3;
+	if (error < 0.02 && hover_ref > 0 && input > hover_ref + 5) delta = -1;
+	else if (error > 0.2 && delta > 0.1) delta = 2;
+	else if (delta > 10 && D_term < 0 && error > 0 && input < 2850) delta = 10;
+	else if (error > 0 && delta > 5) delta = 5;
 	else if (delta > 0.1 && delta <= 1) delta = 1;
-	else if (delta < -2) delta = -2;
-	else if (delta <= -0.02 && delta > -1) delta = -1;
+	//else if (delta < -2 && input > 2790) delta = -1;
+	else delta = 0;
+	//else if (delta <= -0.10 && delta > -1) delta = -1;
 	input = input + delta;
 
 	// Limit the input 
 	//if (error < -0.10 && input > 2930) input = input - 1;
-	if (error > -0.05 && input < 2780) input = 2780;
-	else if (error > 0 && D_term < 0 && input < 2870) input = 2870;
-	else if (error > 0 && input < 2860) input = 2860;
+	//if (error > -0.05 && input < 2780) input = 2780;
+	//else if (error > 0 && D_term < 0 && input < 2870) input = 2870;
+	//else if (error > 0 && input < 2800) input = 2800;
 	//else if (error > 0.1 && input < hover_ref-70) input = 2880;
 	if (altitude_goal < 0.3 && input < 2400) input = 2400;
-	else if (input < 2855) input = 2855;
-	else if (input > 2950) input = 2950;
+	else if (input < 2605) input = 2605;
+	else if (error > 0 && input < 2770) input = 2770;
+	else if (error < 0.1 && hover_ref > 0 && input > hover_ref + 10) 
+		input = hover_ref - 2;
+	else if (error < 0.1 && input > 2850) input = 2850;
+	else if (input > 2900) input = 2900;
 
 	//float blah = telemetry.uav_alt;
 	/*float blah = pwm_desired[0];//delta;//input;
