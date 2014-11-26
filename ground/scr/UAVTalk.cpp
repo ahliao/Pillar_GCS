@@ -108,7 +108,7 @@ int UAVTalk::read() {
 	cerr << f << endl;
 	serial->clear(QSerialPort::Input);*/
 	//serial->waitForReadyRead(50);
-	double difference = 0;	// Time diff
+	/*double difference = 0;	// Time diff
 	uint32_t temp = 0;
 	float f = 0;
 	uint8_t c = readByte();
@@ -124,9 +124,9 @@ int UAVTalk::read() {
 	cerr << f << endl;
 	//difference = time.elapsed() / 1000.0;
 	//of  << difference << ", " << f << endl;
-	serial->clear(QSerialPort::Input);
+	serial->clear(QSerialPort::Input);*/
 	//mainwindow->updateAttitudeState(f, 0, 0);
-	/*double difference = 0;	// Time diff
+	double difference = 0;	// Time diff
 	serial->waitForReadyRead(50);
 	while (serial->bytesAvailable() > 0) {
 		// read in one byte
@@ -227,17 +227,49 @@ int UAVTalk::read() {
 				case GPSPOSITION_OBJID:
 				case GPSPOSITION_OBJID_001:
 				case GPSPOSITIONSENSOR_OBJID:
-					uav_lat	= get_int32(&msg, GPSPOSITION_OBJ_LAT);
-					uav_lon = get_int32(&msg, GPSPOSITION_OBJ_LON);
-					uav_satellites_visible	= (uint8_t) get_int8(&msg, GPSPOSITION_OBJ_SATELLITES);
+					// Put lat and lon into array to get the median
+					lat_array[gps_index++] = (double)(get_int32(&msg, GPSPOSITION_OBJ_LAT)/1.0e7);
+					lon_array[gps_index++] = (double)(get_int32(&msg, GPSPOSITION_OBJ_LON)/1.0e7);
+					if (gps_index > 4) gps_index = 0;
+
+					// Find the median of the array
+					// Sort array 
+					for (int i = 0; i < 5; ++i) sorted_array[i] = lat_array[i];
+					for (int i = 0; i < 5; ++i) {
+						for (int j = i + 1; j < 5; ++j) {
+							if (sorted_array[i] > sorted_array[j]) {
+								float temp = sorted_array[j];
+								sorted_array[j] = sorted_array[i];
+								sorted_array[i] = temp;
+							}
+						}
+					}
+					uav_lat = sorted_array[2];
+
+					// Sort array 
+					for (int i = 0; i < 5; ++i) sorted_array[i] = lat_array[i];
+					for (int i = 0; i < 5; ++i) {
+						for (int j = i + 1; j < 5; ++j) {
+							if (sorted_array[i] > sorted_array[j]) {
+								float temp = sorted_array[j];
+								sorted_array[j] = sorted_array[i];
+								sorted_array[i] = temp;
+							}
+						}
+					}
+					uav_lon = sorted_array[2];
+
+					//uav_lat	= (double) (get_int32(&msg, GPSPOSITION_OBJ_LAT) / 1.0e7);
+					//uav_lon = (double) (get_int32(&msg, GPSPOSITION_OBJ_LON) / 1.0e7);
+					uav_satellites_visible	= (int8_t) get_int8(&msg, GPSPOSITION_OBJ_SATELLITES);
 					uav_fix_type = (uint8_t) get_int8(&msg, GPSPOSITION_OBJ_STATUS);
-					uav_gpsheading = (int16_t) get_float(&msg, GPSPOSITION_OBJ_HEADING);
+					uav_gpsheading = (double) get_int32(&msg, GPSPOSITION_OBJ_HEADING);
 #ifndef BARO_ALT
-					uav_alt	= (int32_t) round(get_float(&msg, GPSPOSITION_OBJ_ALTITUDE) * 100.0f);
+					uav_alt	= get_float(&msg, GPSPOSITION_OBJ_ALTITUDE);
 #endif
-					uav_groundspeed	= (uint16_t)get_float(&msg, GPSPOSITION_OBJ_GROUNDSPEED);
+					uav_groundspeed	= (double)get_int32(&msg, GPSPOSITION_OBJ_GROUNDSPEED);
 					mainwindow->updateGPSState(uav_lat, uav_lon, uav_satellites_visible,
-							uav_gpsheading, uav_alt, uav_groundspeed);
+							uav_gpsheading, uav_alt, uav_groundspeed, uav_fix_type);
 					break;
 
 				case FLIGHTBATTERYSTATE_OBJID:
@@ -271,7 +303,7 @@ int UAVTalk::read() {
 		}
 
 		//delayMicroseconds(190);  // wait at least 1 byte
-	}*/
+	}
 
 	// check connect timeout
 	/*if (last_flighttelemetry_connect + FLIGHTTELEMETRYSTATS_CONNECT_TIMEOUT < millis()) {
@@ -330,7 +362,7 @@ void UAVTalk::closeSerialPort() {
 }
 
 int8_t UAVTalk::get_int8(uavtalk_message_t *msg, int pos) {
-	return msg->Data[pos];
+	return msg->Data[pos+2];
 }
 
 // return an int16 from the ms

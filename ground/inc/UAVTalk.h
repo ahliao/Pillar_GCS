@@ -242,13 +242,13 @@ class UAVTalk : public QObject
 		float uav_gyro_y;
 		float uav_gyro_z;
 
-		int32_t uav_lat;
-		int32_t uav_lon;
-		uint8_t uav_satellites_visible;
+		double uav_lat;
+		double uav_lon;
+		int8_t uav_satellites_visible;
 		uint8_t uav_fix_type;
-		int16_t uav_gpsheading;
-		int32_t uav_alt;
-		uint16_t uav_groundspeed;
+		double uav_gpsheading;
+		float uav_alt;
+		double uav_groundspeed;
 
 		uint16_t uav_bat;
 		uint16_t uav_current;
@@ -295,6 +295,11 @@ class UAVTalk : public QObject
 		std::ofstream of;
 		unsigned long long logindex;
 		QTime time;
+
+		double lat_array[5];
+		double lon_array[5];
+		double sorted_array[5];
+		uint8_t gps_index;
 
 	public slots:
 		int read();

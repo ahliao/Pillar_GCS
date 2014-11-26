@@ -33,9 +33,9 @@ class MainWindow : public QDialog
 		void updateAccelState(const float x,
 				const float y, const float z);
 
-		void updateGPSState(const int lat, const int lon,
+		void updateGPSState(const double lat, const double lon,
 				const int satellites, const int gpsheading,
-				const int alt, const int speed);
+				const int alt, const int speed, const int fix);
 
 		void updateFlightStatus(const int armed, const int mode);
 
@@ -65,6 +65,7 @@ class MainWindow : public QDialog
 		QLabel* lonLabel;
 		QLabel* satellitesLabel;
 		QLabel* gpsheadingLabel;
+		QLabel* fixLabel;
 		QLabel* altLabel;
 		QLabel* groundspeedLabel;
 

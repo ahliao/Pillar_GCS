@@ -29,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	lonLabel = new QLabel("Lon: 0");
 	satellitesLabel = new QLabel("Satellites: 0");
 	gpsheadingLabel = new QLabel("GPS Heading: 0.00");
+	fixLabel = new QLabel("Fix: 0");
 	altLabel = new QLabel("Altitude: 0.00");
 	groundspeedLabel = new QLabel("Ground Speed: 0.00");
 	rssiLabel = new QLabel("RSSI: 0");
@@ -50,6 +51,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	mainLayout->addWidget(lonLabel);
 	mainLayout->addWidget(satellitesLabel);
 	mainLayout->addWidget(gpsheadingLabel);
+	mainLayout->addWidget(fixLabel);
 	mainLayout->addWidget(altLabel);
 	mainLayout->addWidget(groundspeedLabel);
 	mainLayout->addWidget(rssiLabel);
@@ -85,14 +87,15 @@ void MainWindow::updateAccelState(const float x,
 	accelZLabel->setText(QString("Accel Z: %1").arg(z));
 }
 
-void MainWindow::updateGPSState(const int lat, const int lon,
+void MainWindow::updateGPSState(const double lat, const double lon,
 		const int satellites, const int gpsheading,
-		const int alt, const int speed)
+		const int alt, const int speed, const int fix)
 {
 	latLabel->setText(QString("Lat: %1").arg(lat));
 	lonLabel->setText(QString("Lon: %1").arg(lon));
 	satellitesLabel->setText(QString("Satellites: %1").arg(satellites));
 	gpsheadingLabel->setText(QString("GPS Heading: %1").arg(gpsheading));
+	fixLabel->setText(QString("Fix: %1").arg(fix));
 	altLabel->setText(QString("Altitude: %1").arg(alt));
 	groundspeedLabel->setText(QString("Ground Speed: %1").arg(speed));
 }

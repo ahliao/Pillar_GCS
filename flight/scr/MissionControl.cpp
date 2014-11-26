@@ -16,25 +16,25 @@ MissionControl::MissionControl()
 	action.time = 0;
 	mission.actions[0] = action;
 	action.type = ACTION_TAKEOFF;
-	action.altitude = 0.7;
+	action.altitude = 0.5;
 	action.waypointLong = 0;	// Ignore wp for action_takeoff
 	action.waypointLat = 0;
 	action.time = 0;
 	mission.actions[1] = action;
 	mission.action = action;
 	action.type = ACTION_HOVER;
-	action.altitude = 0.7;
+	action.altitude = 0.5;
 	action.waypointLong = 0;	
 	action.waypointLat = 0;
-	action.time = 20;
+	action.time = 5;
 	mission.actions[2] = action;
 
-	/*action.type = ACTION_WP;
+	action.type = ACTION_WP;
 	action.altitude = 0.5;
 	action.waypointLong = -83.716084;
 	action.waypointLat = 42.292475;
 	action.time = 5;
-	mission.actions[2] = action;*/
+	mission.actions[3] = action;
 
 	/*action.type = ACTION_WP;
 	action.altitude = 0.5;
@@ -48,13 +48,13 @@ MissionControl::MissionControl()
 	action.waypointLong = 0;	
 	action.waypointLat = 0;
 	action.time = 0;
-	mission.actions[3] = action;
+	mission.actions[4] = action;
 	action.type = ACTION_END;
 	action.altitude = 0;
 	action.waypointLong = 0;	
 	action.waypointLat = 0;
 	action.time = 0;
-	mission.actions[4] = action;
+	mission.actions[5] = action;
 
 	telemetry.uav_rssi = 0;
 	telemetry.uav_linkquality = 0;
@@ -180,7 +180,7 @@ uint8_t MissionControl::runMission()
 			// TODO: Run safety checks
 
 			// Set high thrust for stable takeoff
-			pwm_desired[1] = 2640;
+			pwm_desired[1] = 2400;
 
 			// Go to the takeoff (next step)
 			++mission.actionIndex;
@@ -208,7 +208,7 @@ uint8_t MissionControl::runMission()
 			break;
 		case ACTION_HOVER:
 			// keep track of when hover_start is called
-			/*if (hover_start < 0) {
+			if (hover_start < 0) {
 				hover_start = TCNT0;
 				hover_overflow_counter = 0;
 			}
@@ -222,7 +222,7 @@ uint8_t MissionControl::runMission()
 				hover_start = -999;
 				hover_overflow_counter = 0;
 				++mission.actionIndex;
-			}*/
+			}
 
 			// TODO: Set the goal altitude as the action alt
 			flightcontrol.altitudeControl(action.altitude, telemetry);
@@ -234,7 +234,7 @@ uint8_t MissionControl::runMission()
 			break;
 		case ACTION_WP:
 			// If there are enough satellites
-			if (telemetry.uav_satellites_visible > 4) {
+			if (telemetry.uav_satellites_visible >= 4) {
 				// Call temp waypoint controller
 				/*errorLong = action.waypointLong - telemetry.uav_lon;
 				errorLat = action.waypointLat - telemetry.uav_lat;
@@ -365,8 +365,9 @@ uint8_t MissionControl::runSafetyChecks()
 void MissionControl::setAltitude(const float alt)
 {
 	// Don't accept crazy differences
-	if (telemetry.uav_alt - alt < 0.8 && telemetry.uav_alt - alt > -0.8)
+	if (telemetry.uav_alt - alt < 2.0 && telemetry.uav_alt - alt > -2.0)
 		telemetry.uav_alt = alt;
+	//else telemetry.uav_alt -= 0.01;
 }
 
 // Called by barometer to set the altitude offset
