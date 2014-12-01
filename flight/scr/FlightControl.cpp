@@ -90,14 +90,14 @@ void FlightControl::altitudeControl(const float altitude_goal,
 	//else if (error > 0 && D_term < 0 && input < 2870) input = 2870;
 	//else if (error > 0 && input < 2800) input = 2800;
 	//else if (error > 0.1 && input < hover_ref-70) input = 2880;
-	if (altitude_goal < 0.3 && input < 2400) input = 2400;
-	else if (input < 2605) input = 2605;
-	else if (error > 0 && input < 2650) input = 2650;
-	else if (error < 0.1 && hover_ref > 0 && input > hover_ref + 3) 
+	if (altitude_goal < 0.3 && input < 2500) input = 2500;
+	else if (input < 2665) input = 2665;
+	else if (error > 0 && input < 2760) input = 2760;
+	else if (error < 0.1 && hover_ref > 0 && input > hover_ref + 2) 
 		input = hover_ref;
-	else if (error < 0.1 && input > 2800) input = 2800;
+	else if (error < 0.1 && input > 2830) input = 2840;
 	
-	if (input > 2820) input = 2820;
+	if (input > 2860) input = 2860;
 
 	//float blah = telemetry.uav_alt;
 	/*float blah = pwm_desired[0];//delta;//input;
@@ -132,8 +132,8 @@ void FlightControl::pitchControl(const float pitch_goal,
 	input = input + error * pitch_Kp - Kd * D_term;
 
 	// Limit the input pitch
-	if (input < 2500) input = 2500;
-	else if (input > 2900) input = 2900;
+	if (input < 2600) input = 2600;
+	else if (input > 2800) input = 2800;
 
 	// Load new desired PWM into channel 4
 	pwm_desired[2] = input;

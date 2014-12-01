@@ -15,7 +15,7 @@ MissionControl::MissionControl()
 	action.waypointLat = 0;
 	action.time = 0;
 	mission.actions[0] = action;
-	action.type = ACTION_TAKEOFF;
+	/*action.type = ACTION_TAKEOFF;
 	action.altitude = 0.5;
 	action.waypointLong = 0;	// Ignore wp for action_takeoff
 	action.waypointLat = 0;
@@ -26,15 +26,15 @@ MissionControl::MissionControl()
 	action.altitude = 0.5;
 	action.waypointLong = 0;	
 	action.waypointLat = 0;
-	action.time = 5;
-	mission.actions[2] = action;
+	action.time = 1;
+	mission.actions[2] = action;*/
 
 	action.type = ACTION_WP;
 	action.altitude = 0.5;
-	action.waypointLong = -83.716084;
-	action.waypointLat = 42.292475;
+	action.waypointLong = -83.716029000;
+	action.waypointLat = 42.2925050;
 	action.time = 5;
-	mission.actions[3] = action;
+	mission.actions[1] = action;
 
 	/*action.type = ACTION_WP;
 	action.altitude = 0.5;
@@ -180,7 +180,7 @@ uint8_t MissionControl::runMission()
 			// TODO: Run safety checks
 
 			// Set high thrust for stable takeoff
-			pwm_desired[1] = 2400;
+			pwm_desired[1] = 2600;
 
 			// Go to the takeoff (next step)
 			++mission.actionIndex;
@@ -234,26 +234,29 @@ uint8_t MissionControl::runMission()
 			break;
 		case ACTION_WP:
 			// If there are enough satellites
-			if (telemetry.uav_satellites_visible >= 4) {
+			//if (telemetry.uav_satellites_visible >= 4) {
 				// Call temp waypoint controller
 				/*errorLong = action.waypointLong - telemetry.uav_lon;
 				errorLat = action.waypointLat - telemetry.uav_lat;
 				controlWaypoint(action.waypointLong, action.waypointLat);*/
+			controlWaypoint(action);
 
 				// Call latitude controller
-				moveLat(action);
+				//moveLat(action);
 				// Call longitude controller
-				moveLng(action);
-			} else {
+				//moveLng(action);
+			//flightcontrol.rollControl(10.00, telemetry);
+			/*} else {
 				// Stay there
 				flightcontrol.rollControl(0.00, telemetry);
 				flightcontrol.pitchControl(0.00, telemetry);
-			}
+			}*/
 			// Maintain altitude
 			flightcontrol.altitudeControl(action.altitude, telemetry);
 
+
 			// If near the area start timer
-			if (errorLat < 0.0001 && errorLat > -0.0001 && 
+			/*if (errorLat < 0.0001 && errorLat > -0.0001 && 
 					errorLng < 0.0001 && errorLng > -0.0001) {
 				if (hover_start < 0) {
 					hover_start = TCNT0;
@@ -272,7 +275,7 @@ uint8_t MissionControl::runMission()
 					lngdist = -9999;
 					++mission.actionIndex;
 				}
-			}
+			}*/
 
 			break;
 		case ACTION_LAND:
@@ -326,21 +329,46 @@ uint8_t MissionControl::runMission()
 
 // Temp P controller
 // TODO: REMOVE ME
-void MissionControl::controlWaypoint(double errorLat, double errorLong)
+void MissionControl::controlWaypoint(const MissionAction& action)
 {
+	float errorLong = action.waypointLong - telemetry.uav_lon;
+	float errorLat = action.waypointLat - telemetry.uav_lat;
+
 	// Assumes we are facing north
-	/*float roll_delta = long_Kp * errorLong;
+	float D_term = telemetry.uav_lon - lastLng;
+	float roll_delta = long_Kp * errorLong - long_Kd * D_term;
+	uint16_t in = 2920;
 	float roll_angle = 0.00;
-	if (roll_delta > 0.001) roll_angle = 0.05;
-	else if (roll_delta < 0.001) roll_angle = -0.05;
+	if (wpCounter % 4000) {
+		if (roll_delta > 0.000015 && roll_delta < 0.1) in = 2905;//roll_angle = -0.55;
+		//else if (roll_delta > 0 && roll_delta <= 0.000125) roll_angle = -0.6;
+		else if (roll_delta < -0.000015 && roll_delta > -0.1) in = 2930;//roll_angle = 0.55;
+	} 
+	if (wpCounter++ % 4500) {
+		if (roll_delta > 0.000015 && roll_delta < 0.1) in = 2930;//roll_angle = -0.55;
+		//else if (roll_delta > 0 && roll_delta <= 0.000125) roll_angle = -0.6;
+		else if (roll_delta < -0.000015 && roll_delta > -0.1) in = 2905;//roll_angle = 0.55;
+	}
+	//else if (roll_delta < 0 && roll_delta >= -0.000125) roll_angle = 0.6;
 
 	float pitch_delta = lat_Kp * errorLat;
 	float pitch_angle = 0.00;
-	if (pitch_delta > 0.001) pitch_angle = 0.05;
-	else if (pitch_delta < 0.001) pitch_angle = -0.05;
+	if (pitch_delta > 0.001) pitch_angle = 1.05;
+	else if (pitch_delta < -0.001) pitch_angle = -1.05;
 
-	flightcontrol.rollControl(roll_angle, telemetry);
-	flightcontrol.pitchControl(pitch_angle, telemetry);*/
+	pwm_desired[3] = in;
+
+	//flightcontrol.rollControl(roll_angle, telemetry);
+	//flightcontrol.pitchControl(pitch_angle, telemetry);
+
+	/*float blah = telemetry.uav_lon;//error * yaw_Kp - Kd*D_term;
+	//uint32_t blah = input;
+	uint32_t temp;
+	memcpy(&temp, &blah, sizeof(float));
+	UART::writeByte(temp >> 24);
+	UART::writeByte(temp >> 16);
+	UART::writeByte(temp >> 8);
+	UART::writeByte(temp);*/
 }
 
 // Read in new telemetry data from UAVTalk
@@ -380,7 +408,7 @@ void MissionControl::setAltOffset(const float off)
 void MissionControl::moveLat(const MissionAction& action) {
 	// If this is a starting point, save it
 	// Or if the distance is too unreasonable, resave it
-	if (latdist == -9999 || latdist > 0.01 || latdist < -0.01) 
+	/*if (latdist == -9999 || latdist > 0.01 || latdist < -0.01) 
 		latdist = telemetry.uav_lat - action.waypointLat;
 
 	// Current error in latitude
@@ -421,14 +449,14 @@ void MissionControl::moveLat(const MissionAction& action) {
 	}
 	else if (fracLat < 0.1) {
 		pitchAngle = 0.0;
-	}
-	flightcontrol.pitchControl(pitchAngle, telemetry);
+	}*/
+	//flightcontrol.pitchControl(pitchAngle, telemetry);
 }
 
 void MissionControl::moveLng(const MissionAction& action)  {
 	// If this is a starting point, save it
 	// Or if unreasonable distance
-	if (lngdist == -9999 || lngdist > 0.01 || lngdist < -0.01) 
+	/*if (lngdist == -9999 || lngdist > 0.01 || lngdist < -0.01) 
 		lngdist = telemetry.uav_lon - action.waypointLong;
 
 	// Current error in latitude
@@ -468,7 +496,15 @@ void MissionControl::moveLng(const MissionAction& action)  {
 		else if (errorLng < 0) rollAngle = -7.0;
 	}
 	else if (fracLng < 0.1) {
-		rollAngle = 0.0;
-	}
-	flightcontrol.rollControl(rollAngle, telemetry);
+		rollAngle = -3.0;
+	}*/
+	//errorLng = action.waypointLong - telemetry.uav_lon;
+	float error =  action.waypointLong - telemetry.uav_lon;//-83.72555500 - telemetry.uav_lon;
+	float rollAngle = 0;	// Angle to set the pitch for north/south
+	if (error > 0.0000) rollAngle = 2850;
+	//else if (errorLng > 0 && errorLng <= 0.0001) rollAngle = 2800;
+	else if (error < 0.0000) rollAngle = 2950;
+	//else if (errorLng < 0 && errorLng >= -0.0001) rollAngle = 2980;
+	pwm_desired[3] = rollAngle;
+	//flightcontrol.rollControl(rollAngle, telemetry);
 }

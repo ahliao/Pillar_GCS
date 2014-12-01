@@ -45,7 +45,7 @@ clean:
 
 # uploads onto chip
 upload:
-	sudo avrdude -c $(PROGRAMMER) -p $(CHIP) -U flash:w:$(HEXFILE) -B2
+	sudo avrdude -c $(PROGRAMMER) -p $(CHIP) -U flash:w:$(HEXFILE) -B5
 
 # checks low fuse bits
 checklowfuse:

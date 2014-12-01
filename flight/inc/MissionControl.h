@@ -66,7 +66,7 @@ class MissionControl
 		void updateTelemetry();
 
 	private:
-		void controlWaypoint(double errorLat, double errorLong);
+		void controlWaypoint(const MissionAction& action);
 
 		void moveLat(const MissionAction& action);
 		void moveLng(const MissionAction& action);
@@ -94,14 +94,17 @@ class MissionControl
 
 		float landing_dest;
 
-		/*const static float long_Kp = 1;
+		const static float long_Kp = 1.2;
+		const static float long_Kd = 0;
 		const static float lat_Kp = 1;
-		double errorLong;
-		double errorLat;*/
+		//double errorLong;
+		//double errorLat;
 
 		float startLon, startLat;
 		float latdist, lngdist;
 		float errorLat, errorLng;
+		float lastLat, lastLng;
+		uint32_t wpCounter;
 };
 
 #endif

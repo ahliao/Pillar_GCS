@@ -61,7 +61,7 @@ class FlightControl
 
 		const static float alt_Kp_rise = 1.20;
 		const static float alt_Kp_fall = 0.420;
-		const static float alt_Ki = 0.0;
+		const static float alt_Ki = 1.0;
 		const static float alt_Kd = 4.30;
 
 		uint16_t last_time;

@@ -142,6 +142,7 @@ int main()
 					missionControl.runManual();
 					telemetry_update = 0;
 				}
+				PORTB |= (1 << 5);
 
 				break;
 			case AUTOPILOT_AUTO:
@@ -153,6 +154,7 @@ int main()
 					missionControl.runMission();
 					telemetry_update = 0;
 				}
+				PORTB &= ~(1 << 5);
 				// TEST:
 				/*pwm_desired[0] = 3000;
 				pwm_desired[1] = 3000;
@@ -163,6 +165,7 @@ int main()
 				break;
 			case AUTOPILOT_EMERGENCY:
 				// Handle Emergency mode logic
+
 				pwm_desired[0] = 3000;
 				pwm_desired[1] = 1000;
 				pwm_desired[2] = 3000;
@@ -350,7 +353,7 @@ ISR(PCINT2_vect)
 			if (temp > 0 && temp < 4500) //pwm_desired[input_curr] = (TCNT1 - pwm_input_starts[input_curr]);
 			{
 				// Set PWM output to the delta time found
-				//if (autopilot_state == AUTOPILOT_MANUAL)
+				if (autopilot_state == AUTOPILOT_MANUAL)
 					if (pwm_desired[3] < 2860 || pwm_desired[3] > 2960 || temp < 2860 || temp > 2960)
 						pwm_desired[3] = (temp + pwm_desired[3]) / 2;
 			}
