@@ -294,7 +294,7 @@ ISR(PCINT2_vect)
 			{
 				// Set PWM output to the delta time found
 				if (autopilot_state == AUTOPILOT_MANUAL) {
-					if (pwm_desired[0] < 2858 || pwm_desired[0] > 2948 || temp < 2858 || temp > 2948)
+					if (pwm_desired[0] < 2890 || pwm_desired[0] > 2930 || temp < 2890 || temp > 2930)
 						pwm_desired[0] = (temp + pwm_desired[0]) / 2;
 				}
 			}
@@ -333,8 +333,8 @@ ISR(PCINT2_vect)
 			if (temp > 0 && temp < 4500) //pwm_desired[input_curr] = (TCNT1 - pwm_input_starts[input_curr]);
 			{
 				// Set PWM output to the delta time found
-				//if (autopilot_state == AUTOPILOT_MANUAL)
-					if (pwm_desired[2] < 2602 || pwm_desired[2] > 2702 || temp < 2602 || temp > 2702)
+				if (autopilot_state == AUTOPILOT_MANUAL)
+					if (pwm_desired[2] < 2600 || pwm_desired[2] > 2700 || temp < 2600 || temp > 2700)
 					pwm_desired[2] = (temp + pwm_desired[2]) / 2;
 			}
 		}

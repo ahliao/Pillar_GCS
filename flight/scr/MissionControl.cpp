@@ -31,15 +31,22 @@ MissionControl::MissionControl()
 
 	action.type = ACTION_WP;
 	action.altitude = 0.5;
-	action.waypointLong = -83.716029000;
-	action.waypointLat = 42.2925050;
-	action.time = 5;
+	// -83.716132, 42.292515 Waypoint 
+	// -83.716029, 42.2925050
+	// -83.715346, 42.291997 // mole hill
+	action.waypointLong = -83.715346;
+	action.waypointLat = 42.291997;
+	action.time = 8;
 	mission.actions[1] = action;
+
+	// -83.725685, 42.294877	// Starting
+	// -83.725581, 42.294688	// Down the field
+	// -83.725685, 42.294877	// Starting point (end)
 
 	/*action.type = ACTION_WP;
 	action.altitude = 0.5;
-	action.waypointLong = -83.715925;
-	action.waypointLat = 42.292497;
+	action.waypointLong = -83.725685;
+	action.waypointLat = 42.294688;
 	action.time = 5;
 	mission.actions[3] = action;*/
 
@@ -74,7 +81,6 @@ MissionControl::MissionControl()
 	telemetry.uav_bat = 0;
 	telemetry.uav_current = 0;
 	telemetry.uav_amp = 0;
-
 }
 
 void MissionControl::init()
@@ -256,8 +262,10 @@ uint8_t MissionControl::runMission()
 
 
 			// If near the area start timer
-			/*if (errorLat < 0.0001 && errorLat > -0.0001 && 
-					errorLng < 0.0001 && errorLng > -0.0001) {
+			/*float errorLong = action.waypointLong - telemetry.uav_lon;
+			float errorLat = action.waypointLat - telemetry.uav_lat;
+			if (errorLat < 0.00007 && errorLat > -0.00007 && 
+					errorLng < 0.00007 && errorLng > -0.00007) {
 				if (hover_start < 0) {
 					hover_start = TCNT0;
 					hover_overflow_counter = 0;
@@ -271,8 +279,6 @@ uint8_t MissionControl::runMission()
 				if (hover_time >= action.time) {
 					hover_start = -999;
 					hover_overflow_counter = 0;
-					latdist = -9999;
-					lngdist = -9999;
 					++mission.actionIndex;
 				}
 			}*/
@@ -335,31 +341,47 @@ void MissionControl::controlWaypoint(const MissionAction& action)
 	float errorLat = action.waypointLat - telemetry.uav_lat;
 
 	// Assumes we are facing north
-	float D_term = telemetry.uav_lon - lastLng;
-	float roll_delta = long_Kp * errorLong - long_Kd * D_term;
-	uint16_t in = 2920;
-	float roll_angle = 0.00;
-	if (wpCounter % 4000) {
-		if (roll_delta > 0.000015 && roll_delta < 0.1) in = 2905;//roll_angle = -0.55;
-		//else if (roll_delta > 0 && roll_delta <= 0.000125) roll_angle = -0.6;
-		else if (roll_delta < -0.000015 && roll_delta > -0.1) in = 2930;//roll_angle = 0.55;
+	uint16_t inRoll = 2917;
+	//if (telemetry.uav_roll > 0) inRoll = 2930;
+	//else if (telemetry.uav_roll < 0) inRoll = 2910;
+	uint16_t inPitch = 2650;
+	if (wpCounter % 20000) {
+		/*if (errorLong > 0.000050) inRoll = 2895;
+		else if (errorLong < -0.000050) inRoll = 2937;
+
+		if (errorLat > 0.000050) inPitch = 2680;
+		else if (errorLat < -0.000050) inPitch = 2620;
+
+		if (errorLong > 0.00015 || errorLong < -0.00015) pwm_desired[1] = 2000;
+		if (errorLat > 0.00015 || errorLat < -0.00015) pwm_desired[1] = 2000;
+
+		pwm_desired[3] = inRoll;
+		pwm_desired[2] = inPitch;*/
+
+		if (errorLong > 0.000050) flightcontrol.rollControl(-1, telemetry);
+		else if (errorLong < -0.000050) flightcontrol.rollControl(1, telemetry);
+
+		if (errorLat > 0.000050) flightcontrol.pitchControl(1, telemetry);
+		else if (errorLat < -0.000050) flightcontrol.pitchControl(-1, telemetry);
 	} 
-	if (wpCounter++ % 4500) {
-		if (roll_delta > 0.000015 && roll_delta < 0.1) in = 2930;//roll_angle = -0.55;
-		//else if (roll_delta > 0 && roll_delta <= 0.000125) roll_angle = -0.6;
-		else if (roll_delta < -0.000015 && roll_delta > -0.1) in = 2905;//roll_angle = 0.55;
+	else {
+		//flightcontrol.rollControl(0.00, telemetry);
+		//flightcontrol.pitchControl(0.00, telemetry);
+		pwm_desired[3] = inRoll;
+		pwm_desired[2] = inPitch;
 	}
-	//else if (roll_delta < 0 && roll_delta >= -0.000125) roll_angle = 0.6;
+	/*if (wpCounter % 12500) {
+		if (errorLong > 0.000065) inRoll = 2932;
+		else if (errorLong < -0.000065) inRoll = 2913;
 
-	float pitch_delta = lat_Kp * errorLat;
-	float pitch_angle = 0.00;
-	if (pitch_delta > 0.001) pitch_angle = 1.05;
-	else if (pitch_delta < -0.001) pitch_angle = -1.05;
+		if (errorLat > 0.000065 && errorLat < 0.1) inPitch = 2640;
+		else if (errorLat < -0.000065 && errorLat > -0.1) inPitch = 2670;
+	}*/
 
-	pwm_desired[3] = in;
+	wpCounter++;
 
-	//flightcontrol.rollControl(roll_angle, telemetry);
-	//flightcontrol.pitchControl(pitch_angle, telemetry);
+	//pwm_desired[3] = inRoll;
+	//pwm_desired[2] = inPitch;
 
 	/*float blah = telemetry.uav_lon;//error * yaw_Kp - Kd*D_term;
 	//uint32_t blah = input;

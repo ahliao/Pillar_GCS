@@ -94,12 +94,6 @@ class MissionControl
 
 		float landing_dest;
 
-		const static float long_Kp = 1.2;
-		const static float long_Kd = 0;
-		const static float lat_Kp = 1;
-		//double errorLong;
-		//double errorLat;
-
 		float startLon, startLat;
 		float latdist, lngdist;
 		float errorLat, errorLng;
