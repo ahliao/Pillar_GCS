@@ -29,7 +29,7 @@ MissionControl::MissionControl()
 	action.time = 10;
 	mission.actions[2] = action;
 
-	/*action.type = ACTION_WP;
+	action.type = ACTION_WP;
 	action.altitude = 0.5;
 	// -83.716132, 42.292515 Waypoint 
 	// -83.716029, 42.2925050
@@ -49,9 +49,9 @@ MissionControl::MissionControl()
 	action.waypointLong = 0;	
 	action.waypointLat = 0;
 	action.time = 0;
-	mission.actions[3] = action;*/
+	mission.actions[3] = action;
 
-	action.type = ACTION_WP;
+	/*action.type = ACTION_WP;
 	action.altitude = 0.5;
 	action.waypointLong = -83.725463;
 	action.waypointLat = 42.2944230;
@@ -74,7 +74,7 @@ MissionControl::MissionControl()
 	action.waypointLong = 0;	
 	action.waypointLat = 0;
 	action.time = 0;
-	mission.actions[4] = action;
+	mission.actions[4] = action;*/
 
 	// -83.725685, 42.294877	// Starting
 	// -83.725581, 42.294688	// Down the field
@@ -298,8 +298,8 @@ uint8_t MissionControl::runMission()
 			// If near the area start timer
 			errorLng = action.waypointLong - telemetry.uav_lon;
 			errorLat = action.waypointLat - telemetry.uav_lat;
-			if (errorLat < 0.00009 && errorLat > -0.00009) {
-				//	errorLng < 0.00005 && errorLng > -0.00005) {
+			if (errorLat < 0.00009 && errorLat > -0.00009 &&
+					errorLng < 0.00009 && errorLng > -0.00009) {
 				++mission.actionIndex;
 				/*if (hover_start < 0) {
 					hover_start = TCNT0;
@@ -380,7 +380,7 @@ void MissionControl::controlWaypoint(const MissionAction& action)
 	//if (telemetry.uav_roll > 0) inRoll = 2930;
 	//else if (telemetry.uav_roll < 0) inRoll = 2910;
 	uint16_t inPitch = 2660;
-	if (wpCounter % 14000) {
+	if (wpCounter % 2) {
 		if (errorLong > 0.000030) inRoll = 2920;
 		else if (errorLong < -0.000030) inRoll = 2950;
 
@@ -389,9 +389,6 @@ void MissionControl::controlWaypoint(const MissionAction& action)
 
 		//if (errorLong > 0.00015 || errorLong < -0.00015) pwm_desired[1] = 2000;
 		//if (errorLat > 0.00015 || errorLat < -0.00015) pwm_desired[1] = 2000;
-
-		pwm_desired[3] = inRoll;
-		pwm_desired[2] = inPitch;
 
 		/*if (errorLong > 0.000050) flightcontrol.rollControl(-3, telemetry);
 		else if (errorLong < -0.000050) flightcontrol.rollControl(3, telemetry);
@@ -402,21 +399,17 @@ void MissionControl::controlWaypoint(const MissionAction& action)
 	else {
 		//flightcontrol.rollControl(0.00, telemetry);
 		//flightcontrol.pitchControl(0.00, telemetry);
-		pwm_desired[3] = inRoll;
-		pwm_desired[2] = inPitch;
-	}
-	/*if (wpCounter % 12500) {
-		if (errorLong > 0.000065) inRoll = 2932;
-		else if (errorLong < -0.000065) inRoll = 2913;
+		if (errorLong > 0.000030) inRoll = 2945;
+		else if (errorLong < -0.000030) inRoll = 2925;
 
-		if (errorLat > 0.000065 && errorLat < 0.1) inPitch = 2640;
-		else if (errorLat < -0.000065 && errorLat > -0.1) inPitch = 2670;
-	}*/
+		if (errorLat > 0.000030) inPitch = 2645;
+		else if (errorLat < -0.000030) inPitch = 2675;
+	}
+
+	pwm_desired[3] = inRoll;
+	pwm_desired[2] = inPitch;
 
 	wpCounter++;
-
-	//pwm_desired[3] = inRoll;
-	//pwm_desired[2] = inPitch;
 
 	/*float blah = telemetry.uav_lon;//error * yaw_Kp - Kd*D_term;
 	//uint32_t blah = input;
