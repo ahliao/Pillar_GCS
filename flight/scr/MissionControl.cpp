@@ -15,7 +15,7 @@ MissionControl::MissionControl()
 	action.waypointLat = 0;
 	action.time = 0;
 	mission.actions[0] = action;
-	/*action.type = ACTION_TAKEOFF;
+	action.type = ACTION_TAKEOFF;
 	action.altitude = 0.5;
 	action.waypointLong = 0;	// Ignore wp for action_takeoff
 	action.waypointLat = 0;
@@ -26,31 +26,61 @@ MissionControl::MissionControl()
 	action.altitude = 0.5;
 	action.waypointLong = 0;	
 	action.waypointLat = 0;
-	action.time = 1;
-	mission.actions[2] = action;*/
+	action.time = 10;
+	mission.actions[2] = action;
 
-	action.type = ACTION_WP;
+	/*action.type = ACTION_WP;
 	action.altitude = 0.5;
 	// -83.716132, 42.292515 Waypoint 
 	// -83.716029, 42.2925050
 	// -83.715346, 42.291997 // mole hill
-	action.waypointLong = -83.715346;
-	action.waypointLat = 42.291997;
+	action.waypointLong = -83.7155783;
+	action.waypointLat = 42.2923816;
 	action.time = 8;
 	mission.actions[1] = action;
+	action.type = ACTION_LAND;
+	action.altitude = 0;
+	action.waypointLong = 0;	
+	action.waypointLat = 0;
+	action.time = 0;
+	mission.actions[2] = action;
+	action.type = ACTION_END;
+	action.altitude = 0;
+	action.waypointLong = 0;	
+	action.waypointLat = 0;
+	action.time = 0;
+	mission.actions[3] = action;*/
+
+	action.type = ACTION_WP;
+	action.altitude = 0.5;
+	action.waypointLong = -83.725463;
+	action.waypointLat = 42.2944230;
+	action.time = 3;
+	mission.actions[1] = action;
+	action.type = ACTION_WP;
+	action.altitude = 0.5;
+	action.waypointLong = -83.725678;
+	action.waypointLat = 42.294778;
+	action.time = 3;
+	mission.actions[2] = action;
+	action.type = ACTION_LAND;
+	action.altitude = 0;
+	action.waypointLong = 0;	
+	action.waypointLat = 0;
+	action.time = 0;
+	mission.actions[3] = action;
+	action.type = ACTION_END;
+	action.altitude = 0;
+	action.waypointLong = 0;	
+	action.waypointLat = 0;
+	action.time = 0;
+	mission.actions[4] = action;
 
 	// -83.725685, 42.294877	// Starting
 	// -83.725581, 42.294688	// Down the field
 	// -83.725685, 42.294877	// Starting point (end)
 
-	/*action.type = ACTION_WP;
-	action.altitude = 0.5;
-	action.waypointLong = -83.725685;
-	action.waypointLat = 42.294688;
-	action.time = 5;
-	mission.actions[3] = action;*/
-
-	action.type = ACTION_LAND;
+	/*action.type = ACTION_LAND;
 	action.altitude = 0;
 	action.waypointLong = 0;	
 	action.waypointLat = 0;
@@ -61,7 +91,7 @@ MissionControl::MissionControl()
 	action.waypointLong = 0;	
 	action.waypointLat = 0;
 	action.time = 0;
-	mission.actions[5] = action;
+	mission.actions[5] = action;*/
 
 	telemetry.uav_rssi = 0;
 	telemetry.uav_linkquality = 0;
@@ -109,8 +139,8 @@ void MissionControl::init()
 	yawStart = -999;
 	hover_start = -999;
 	landing_dest = -9999;
-	latdist = -9999;
-	lngdist = -9999;
+	//latdist = -9999;
+	//lngdist = -9999;
 }
 
 void MissionControl::runManual()
@@ -134,10 +164,10 @@ void MissionControl::runManual()
 	flightcontrol.calcTime();
 
 	// Run the roll/pitch controllers is input is close to middle
-	if (pwm_desired[3] >= 2860 && pwm_desired[3] <= 2960) {
+	if (pwm_desired[3] >= 2890 && pwm_desired[3] <= 2930) {
 		flightcontrol.rollControl(0.00, telemetry);
 	}
-	if (pwm_desired[2] >= 2602 && pwm_desired[2] <= 2702) {
+	if (pwm_desired[2] >= 2600 && pwm_desired[2] <= 2700) {
 		flightcontrol.pitchControl(0.00, telemetry);
 	}
 
@@ -180,6 +210,8 @@ uint8_t MissionControl::runMission()
 	flightcontrol.calcTime();
 
 	MissionAction action = mission.actions[mission.actionIndex];
+	float errorLng;
+	float errorLat;
 
 	switch(action.type) {
 		case ACTION_INIT:
@@ -207,8 +239,8 @@ uint8_t MissionControl::runMission()
 			if (yawStart != -999)
 				flightcontrol.yawControl(yawStart, telemetry);
 
-			if (telemetry.uav_alt > action.altitude - 0.07 
-					&& telemetry.uav_alt < action.altitude + 0.07)
+			if (telemetry.uav_alt > action.altitude - 0.25 
+					&& telemetry.uav_alt < action.altitude + 0.25)
 				++mission.actionIndex;
 
 			break;
@@ -236,6 +268,8 @@ uint8_t MissionControl::runMission()
 			// Set the roll and pitch angles to be 0.00
 			flightcontrol.rollControl(0.00, telemetry);
 			flightcontrol.pitchControl(0.00, telemetry);
+			//pwm_desired[3] = 2910;
+			//pwm_desired[2] = 2630;
 
 			break;
 		case ACTION_WP:
@@ -262,16 +296,16 @@ uint8_t MissionControl::runMission()
 
 
 			// If near the area start timer
-			/*float errorLong = action.waypointLong - telemetry.uav_lon;
-			float errorLat = action.waypointLat - telemetry.uav_lat;
-			if (errorLat < 0.00007 && errorLat > -0.00007 && 
-					errorLng < 0.00007 && errorLng > -0.00007) {
-				if (hover_start < 0) {
+			errorLng = action.waypointLong - telemetry.uav_lon;
+			errorLat = action.waypointLat - telemetry.uav_lat;
+			if (errorLat < 0.00009 && errorLat > -0.00009) {
+				//	errorLng < 0.00005 && errorLng > -0.00005) {
+				++mission.actionIndex;
+				/*if (hover_start < 0) {
 					hover_start = TCNT0;
 					hover_overflow_counter = 0;
 				}
 
-				// If the hover has lasted long enough, to go next action
 				// Multiply by four because each timer count is 4us
 				hover_time = (uint16_t)(TCNT0 + (255 - hover_start)) 
 					* 0.000004f + hover_overflow_counter * 0.00102f;
@@ -280,40 +314,41 @@ uint8_t MissionControl::runMission()
 					hover_start = -999;
 					hover_overflow_counter = 0;
 					++mission.actionIndex;
-				}
-			}*/
+				}*/
+			}
+			// If the hover has lasted long enough, to go next action
 
 			break;
 		case ACTION_LAND:
 			if (landing_dest == -9999) landing_dest = telemetry.uav_alt;
 
 			// keep track of when hover_start is called
-			if (telemetry.uav_alt - landing_dest < 0.1 && 
-					telemetry.uav_alt - landing_dest > -0.1) {
+			if (telemetry.uav_alt - landing_dest < 0.25 && 
+					telemetry.uav_alt - landing_dest > -0.25) {
 				if (hover_start < 0) {
 					hover_start = TCNT0;
 					hover_overflow_counter = 0;
 				}
+			}
 
-				// If the hover has lasted long enough, to go next action
-				// Multiply by four because each timer count is 4us
-				hover_time = (uint16_t)(TCNT0 + (255 - hover_start)) * 0.000004f + 
-					hover_overflow_counter * 0.00102f;
-				// TODO: Set the time from the action
-				if (hover_time >= 3) {
-					hover_start = -999;
-					hover_overflow_counter = 0;
+			// If the hover has lasted long enough, to go next action
+			// Multiply by four because each timer count is 4us
+			hover_time = (uint16_t)(TCNT0 + (255 - hover_start)) * 0.000004f + 
+				hover_overflow_counter * 0.00102f;
+			// TODO: Set the time from the action
+			if (hover_time >= 2) {
+				hover_start = -999;
+				hover_overflow_counter = 0;
 
-					if (landing_dest > 0.0) landing_dest = telemetry.uav_alt - 0.2;
-					else landing_dest = -9999;
-					//++mission.actionIndex;
-				}
+				if (landing_dest > 0.0) landing_dest -= 0.1;
+				else landing_dest = -8999;
+				//++mission.actionIndex;
 			}
 
 			// TODO: Set the goal altitude as the action alt
-			if (landing_dest > 0.0)
-				flightcontrol.altitudeControl(landing_dest, telemetry);
-			else pwm_desired[1] = 2250;
+			//if (landing_dest > 0.1)
+				flightcontrol.altitudeControl(-100, telemetry);
+			//else pwm_desired[1] = 2250;
 
 			// Set the roll and pitch angles to be 0.00
 			flightcontrol.rollControl(0.00, telemetry);
@@ -341,28 +376,28 @@ void MissionControl::controlWaypoint(const MissionAction& action)
 	float errorLat = action.waypointLat - telemetry.uav_lat;
 
 	// Assumes we are facing north
-	uint16_t inRoll = 2917;
+	uint16_t inRoll = 2935;
 	//if (telemetry.uav_roll > 0) inRoll = 2930;
 	//else if (telemetry.uav_roll < 0) inRoll = 2910;
-	uint16_t inPitch = 2650;
-	if (wpCounter % 20000) {
-		/*if (errorLong > 0.000050) inRoll = 2895;
-		else if (errorLong < -0.000050) inRoll = 2937;
+	uint16_t inPitch = 2660;
+	if (wpCounter % 14000) {
+		if (errorLong > 0.000030) inRoll = 2920;
+		else if (errorLong < -0.000030) inRoll = 2950;
 
-		if (errorLat > 0.000050) inPitch = 2680;
-		else if (errorLat < -0.000050) inPitch = 2620;
+		if (errorLat > 0.000030) inPitch = 2680;
+		else if (errorLat < -0.000030) inPitch = 2640;
 
-		if (errorLong > 0.00015 || errorLong < -0.00015) pwm_desired[1] = 2000;
-		if (errorLat > 0.00015 || errorLat < -0.00015) pwm_desired[1] = 2000;
+		//if (errorLong > 0.00015 || errorLong < -0.00015) pwm_desired[1] = 2000;
+		//if (errorLat > 0.00015 || errorLat < -0.00015) pwm_desired[1] = 2000;
 
 		pwm_desired[3] = inRoll;
-		pwm_desired[2] = inPitch;*/
+		pwm_desired[2] = inPitch;
 
-		if (errorLong > 0.000050) flightcontrol.rollControl(-1, telemetry);
-		else if (errorLong < -0.000050) flightcontrol.rollControl(1, telemetry);
+		/*if (errorLong > 0.000050) flightcontrol.rollControl(-3, telemetry);
+		else if (errorLong < -0.000050) flightcontrol.rollControl(3, telemetry);
 
-		if (errorLat > 0.000050) flightcontrol.pitchControl(1, telemetry);
-		else if (errorLat < -0.000050) flightcontrol.pitchControl(-1, telemetry);
+		if (errorLat > 0.000050) flightcontrol.pitchControl(3, telemetry);
+		else if (errorLat < -0.000050) flightcontrol.pitchControl(-3, telemetry);*/
 	} 
 	else {
 		//flightcontrol.rollControl(0.00, telemetry);

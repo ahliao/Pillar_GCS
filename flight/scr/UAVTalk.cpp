@@ -121,7 +121,7 @@ int UAVTalk::read(TelemetryData& data) {
 				case GPSPOSITION_OBJID_001:
 				case GPSPOSITIONSENSOR_OBJID:
 					// Put lat and lon into array to get the median
-/*					lat_array[gps_index] = (double)(get_int32(&msg, GPSPOSITION_OBJ_LAT)/1.0e7);
+					lat_array[gps_index] = (double)(get_int32(&msg, GPSPOSITION_OBJ_LAT)/1.0e7);
 					lon_array[gps_index++] = (double)(get_int32(&msg, GPSPOSITION_OBJ_LON)/1.0e7);
 					if (gps_index > 4) gps_index = 0;
 
@@ -150,10 +150,10 @@ int UAVTalk::read(TelemetryData& data) {
 							}
 						}
 					}
-					data.uav_lon = sorted_array[2];*/
+					data.uav_lon = sorted_array[2];
 
-					data.uav_lat = (double)(get_int32(&msg, GPSPOSITION_OBJ_LAT)/1.0e7);
-					data.uav_lon = (double)(get_int32(&msg, GPSPOSITION_OBJ_LON)/1.0e7);
+					//data.uav_lat = (double)(get_int32(&msg, GPSPOSITION_OBJ_LAT)/1.0e7);
+					//data.uav_lon = (double)(get_int32(&msg, GPSPOSITION_OBJ_LON)/1.0e7);
 
 					data.uav_satellites_visible	= (uint8_t) get_int8(&msg, GPSPOSITION_OBJ_SATELLITES);
 					data.uav_fix_type = (uint8_t) get_int8(&msg, GPSPOSITION_OBJ_STATUS);

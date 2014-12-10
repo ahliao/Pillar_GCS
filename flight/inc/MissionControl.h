@@ -94,10 +94,10 @@ class MissionControl
 
 		float landing_dest;
 
-		float startLon, startLat;
-		float latdist, lngdist;
-		float errorLat, errorLng;
-		float lastLat, lastLng;
+		//float startLon, startLat;
+		//float latdist, lngdist;
+		//float errorLat, errorLng;
+		//float lastLat, lastLng;
 		uint32_t wpCounter;
 };
 

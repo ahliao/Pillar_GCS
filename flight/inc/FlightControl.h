@@ -47,11 +47,11 @@ class FlightControl
 		//float ground_reference;
 
 		// Control constants
-		const static float roll_Kp = 0.7;
+		const static float roll_Kp = 1.7;
 		const static float roll_Ki = 0;
 		const static float roll_Kd = 0.01;
 
-		const static float pitch_Kp = 0.7;
+		const static float pitch_Kp = 1.7;
 		const static float pitch_Ki = 0;
 		const static float pitch_Kd = 0.01;
 

@@ -11,6 +11,7 @@
 #include <QtEndian>
 #include "inc/UAVTalk.h"
 #include "inc/mainwindow.h"
+#include <iomanip>
 
 using namespace std;
 
@@ -94,7 +95,7 @@ int UAVTalk::read() {
 	cerr <<  (int) c << endl;
 	c = readByte();
 	cerr <<  (int) c << endl;*/
-	/*uint32_t temp = 0;
+	uint32_t temp = 0;
 	float f;
 	uint8_t c = readByte();
 	temp |= c << 24;
@@ -105,8 +106,9 @@ int UAVTalk::read() {
 	c = readByte();
 	temp |= c;
 	memcpy(&f, &temp, sizeof(float));
+	//cerr << std::setprecision(11) << f << endl;
 	cerr << f << endl;
-	serial->clear(QSerialPort::Input);*/
+	serial->clear(QSerialPort::Input);
 	//serial->waitForReadyRead(50);
 	/*double difference = 0;	// Time diff
 	uint32_t temp = 0;
@@ -126,7 +128,7 @@ int UAVTalk::read() {
 	//of  << difference << ", " << f << endl;
 	serial->clear(QSerialPort::Input);*/
 	//mainwindow->updateAttitudeState(f, 0, 0);
-	double difference = 0;	// Time diff
+	/*double difference = 0;	// Time diff
 	serial->waitForReadyRead(50);
 	while (serial->bytesAvailable() > 0) {
 		// read in one byte
@@ -303,7 +305,7 @@ int UAVTalk::read() {
 		}
 
 		//delayMicroseconds(190);  // wait at least 1 byte
-	}
+	}*/
 
 	// check connect timeout
 	/*if (last_flighttelemetry_connect + FLIGHTTELEMETRYSTATS_CONNECT_TIMEOUT < millis()) {

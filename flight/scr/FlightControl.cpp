@@ -91,14 +91,14 @@ void FlightControl::altitudeControl(const float altitude_goal,
 	//else if (error > 0 && D_term < 0 && input < 2870) input = 2870;
 	//else if (error > 0 && input < 2800) input = 2800;
 	//else if (error > 0.1 && input < hover_ref-70) input = 2880;
-	if (altitude_goal < 0.3 && input < 2500) input = 2500;
-	else if (input < 2665) input = 2665;
+	//if (altitude_goal < 0.3) input = hover_ref - 100;
+	if (input < 2135) input = 2135;
 	else if (error > 0 && input < 2760) input = 2760;
-	else if (error < 0.1 && hover_ref > 0 && input > hover_ref + 2) 
+	else if (error < 0.05 && error > -10 && hover_ref > 0 && input > hover_ref) 
 		input = hover_ref;
-	else if (error < 0.1 && input > 2820) input = 2820;
+	else if (error < 0.1 && input > 2860) input = 2860;
 	
-	if (input > 2885) input = 2885;
+	if (input > 2900) input = 2900;
 
 	//float blah = telemetry.uav_alt;
 	/*float blah = pwm_desired[0];//delta;//input;
